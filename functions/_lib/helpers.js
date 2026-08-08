@@ -109,16 +109,141 @@ export async function verifyTurnstile(token, secret, remoteIp) {
   }
 }
 
+// ============================================================================
+// قالب البريد الإلكتروني — بنفس هوية الموقع (الألوان + الخطوط + الأسلوب)
+// مبني بجداول HTML (table-based) للتوافق مع Gmail وأغلب برامج البريد،
+// وكل الأنماط inline لأن أغلب برامج البريد تتجاهل وسم <style> بالكامل.
+// ============================================================================
+const EMAIL_COLORS = {
+  tealDeep:  '#1f4e5a',
+  teal:      '#6fbac8',
+  terra:     '#c2703d',
+  ink:       '#2b2723',
+  muted:     '#6b655c',
+  paper:     '#faf6ee',
+  paperDeep: '#f1eadd',
+  paper2:    '#fffdf8',
+  line:      '#e5ded0',
+};
+
+// يبني إطار البريد الكامل (رأس بعلامة "峯商店" + بطاقة المحتوى + تذييل)
+function emailShell({ eyebrow, title, bodyHtml, footerNote }) {
+  const c = EMAIL_COLORS;
+  return `<!DOCTYPE html>
+<html lang="ja">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>${eyebrow}</title>
+</head>
+<body style="margin:0;padding:0;background-color:${c.paperDeep};font-family:'Hiragino Sans','Noto Sans JP','Yu Gothic',sans-serif;">
+<table role="presentation" width="100%" cellpadding="0" cellspacing="0" style="background-color:${c.paperDeep};padding:32px 16px;">
+  <tr>
+    <td align="center">
+      <table role="presentation" width="100%" cellpadding="0" cellspacing="0" style="max-width:560px;background-color:${c.paper2};border-radius:14px;overflow:hidden;box-shadow:0 2px 10px rgba(43,39,35,.08);">
+
+        <!-- Header -->
+        <tr>
+          <td style="background-color:${c.tealDeep};padding:30px 32px;text-align:center;">
+            <div style="font-family:'Hiragino Mincho ProN','Yu Mincho','Shippori Mincho',serif;font-size:22px;font-weight:700;color:#ffffff;letter-spacing:.04em;">
+              峯商店
+            </div>
+            <div style="font-size:10px;letter-spacing:.24em;color:${c.teal};margin-top:4px;text-transform:uppercase;">
+              CURRY &amp; CAF&Eacute;
+            </div>
+          </td>
+        </tr>
+
+        <!-- Eyebrow / kj label -->
+        <tr>
+          <td style="padding:32px 32px 0 32px;">
+            <div style="font-family:'Hiragino Mincho ProN','Yu Mincho','Shippori Mincho',serif;font-size:12px;font-weight:700;letter-spacing:.18em;color:${c.terra};margin-bottom:8px;">
+              ${eyebrow}
+            </div>
+            <h1 style="font-family:'Hiragino Mincho ProN','Yu Mincho','Shippori Mincho',serif;font-size:21px;font-weight:700;color:${c.ink};margin:0 0 24px 0;line-height:1.5;">
+              ${title}
+            </h1>
+          </td>
+        </tr>
+
+        <!-- Body -->
+        <tr>
+          <td style="padding:0 32px 8px 32px;">
+            ${bodyHtml}
+          </td>
+        </tr>
+
+        <!-- Divider -->
+        <tr>
+          <td style="padding:28px 32px 0 32px;">
+            <div style="border-top:1px solid ${c.line};"></div>
+          </td>
+        </tr>
+
+        <!-- Footer -->
+        <tr>
+          <td style="padding:20px 32px 30px 32px;">
+            <p style="margin:0 0 6px 0;font-size:12px;color:${c.muted};line-height:1.7;">
+              ${footerNote || ''}
+            </p>
+            <p style="margin:0;font-size:11px;color:${c.muted};">
+              峯商店 CURRY &amp; CAF&Eacute; ｜ 鹿児島県薩摩川内市
+            </p>
+          </td>
+        </tr>
+
+      </table>
+    </td>
+  </tr>
+</table>
+</body>
+</html>`;
+}
+
+// صف بيانات واحد (تسمية + قيمة) بشكل جدول متسق
+function fieldRow(label, value) {
+  const c = EMAIL_COLORS;
+  return `
+    <tr>
+      <td style="padding:10px 0;border-bottom:1px solid ${c.line};width:110px;font-size:13px;color:${c.muted};vertical-align:top;white-space:nowrap;">
+        ${escapeHtml(label)}
+      </td>
+      <td style="padding:10px 0 10px 16px;border-bottom:1px solid ${c.line};font-size:14px;color:${c.ink};font-weight:500;vertical-align:top;">
+        ${value}
+      </td>
+    </tr>`;
+}
+
+// صندوق نص بارز (لعرض محتوى الرسالة أو تفاصيل الطلب)
+function highlightBox(innerHtml) {
+  const c = EMAIL_COLORS;
+  return `
+    <div style="margin-top:20px;background-color:${c.paper};border:1px solid ${c.line};border-radius:10px;padding:18px 20px;font-size:14px;color:${c.ink};line-height:1.9;">
+      ${innerHtml}
+    </div>`;
+}
+// ============================================================================
+
 // --- إرسال بريد رسالة "お問い合わせ" عبر Resend ---
 export async function sendContactEmail(env, c) {
-  const html = `
-    <h2>新しいお問い合わせが届きました</h2>
-    <p><b>お名前:</b> ${escapeHtml(c.name)}</p>
-    <p><b>メール:</b> ${escapeHtml(c.email)}</p>
-    <p><b>件名:</b> ${escapeHtml(c.subject || '(未入力)')}</p>
-    <hr>
-    <p><b>メッセージ:</b><br>${escapeHtml(c.message).replace(/\n/g, '<br>')}</p>
+  const rows = [
+    fieldRow('お名前', escapeHtml(c.name)),
+    fieldRow('メール', `<a href="mailto:${escapeHtml(c.email)}" style="color:${EMAIL_COLORS.tealDeep};text-decoration:none;">${escapeHtml(c.email)}</a>`),
+    fieldRow('件名', escapeHtml(c.subject || '(未入力)')),
+  ].join('');
+
+  const bodyHtml = `
+    <table role="presentation" width="100%" cellpadding="0" cellspacing="0">${rows}</table>
+    ${highlightBox(escapeHtml(c.message).replace(/\n/g, '<br>'))}
   `;
+
+  const html = emailShell({
+    eyebrow: 'CONTACT',
+    title: '新しいお問い合わせが届きました',
+    bodyHtml,
+    footerNote: 'このメールは峯商店サイトの「お問い合わせ」フォームから自動送信されています。',
+  });
+
   const res = await fetch('https://api.resend.com/emails', {
     method: 'POST',
     headers: {
@@ -145,20 +270,31 @@ export async function sendContactEmail(env, c) {
 export async function sendOrderEmail(env, payment) {
   const md = payment.metadata || {};
   const yen = n => '¥' + Number(n || 0).toLocaleString('ja-JP');
-  const html = `
-    <h2>新しいご注文が入りました</h2>
-    <p><b>金額:</b> ${yen(payment.amount)}</p>
-    <p><b>お名前:</b> ${escapeHtml(md.customer_name)}</p>
-    <p><b>電話番号:</b> ${escapeHtml(md.customer_phone)}</p>
-    <p><b>都道府県:</b> ${escapeHtml(md.customer_pref)}</p>
-    <p><b>郵便番号:</b> ${escapeHtml(md.customer_postal)}</p>
-    <p><b>ご住所:</b> ${escapeHtml(md.customer_address)}</p>
-    <p><b>メール:</b> ${escapeHtml(payment.payment_details?.email || md.customer_email)}</p>
-    <p><b>送料:</b> ${md.shipping_fee != null ? yen(md.shipping_fee) : '-'}</p>
-    <hr>
-    <p><b>ご注文内容:</b><br>${escapeHtml(md.order_summary || '(内訳なし)').replace(/\n/g, '<br>')}</p>
-    <p style="color:#999;font-size:12px">Payment ID: ${escapeHtml(payment.id)}</p>
+
+  const rows = [
+    fieldRow('金額', `<span style="color:${EMAIL_COLORS.terra};font-weight:700;font-size:16px;">${yen(payment.amount)}</span>`),
+    fieldRow('お名前', escapeHtml(md.customer_name)),
+    fieldRow('電話番号', escapeHtml(md.customer_phone)),
+    fieldRow('メール', escapeHtml(payment.payment_details?.email || md.customer_email)),
+    fieldRow('都道府県', escapeHtml(md.customer_pref)),
+    fieldRow('郵便番号', escapeHtml(md.customer_postal)),
+    fieldRow('ご住所', escapeHtml(md.customer_address)),
+    fieldRow('送料', md.shipping_fee != null ? yen(md.shipping_fee) : '-'),
+  ].join('');
+
+  const bodyHtml = `
+    <table role="presentation" width="100%" cellpadding="0" cellspacing="0">${rows}</table>
+    ${highlightBox(escapeHtml(md.order_summary || '(内訳なし)').replace(/\n/g, '<br>'))}
+    <p style="margin:16px 0 0 0;font-size:11px;color:${EMAIL_COLORS.muted};">Payment ID: ${escapeHtml(payment.id)}</p>
   `;
+
+  const html = emailShell({
+    eyebrow: 'NEW ORDER',
+    title: '新しいご注文が入りました',
+    bodyHtml,
+    footerNote: 'このメールはKOMOJUでの決済完了時に自動送信されています。',
+  });
+
   const res = await fetch('https://api.resend.com/emails', {
     method: 'POST',
     headers: {
