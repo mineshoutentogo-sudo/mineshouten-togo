@@ -20,7 +20,7 @@ export const OWNER_EMAIL = 'mineshouten.togo@gmail.com';
 export const FALLBACK_TURNSTILE_SECRET_KEY = '0x4AAAAAAEKOKCqQZ28evVCYoA1jFPtJyCU';
 
 // ⚠️ مفتاح API الخاص بـ Resend (لإرسال بريد الطلبات وبريد نموذج التواصل).
-export const FALLBACK_RESEND_API_KEY = 're_GCUW5hQN_LnywCEUHebAKp7ZcmXZDUHtH';
+export const FALLBACK_RESEND_API_KEY = 're_PSVrhZm4_NyRAYbgyVPzqefC9zQXpkTeS';
 
 export const PRODUCTS = {
   set3:       { name: '季節のおまかせ3種',              price: 2700, weight: 750  },
