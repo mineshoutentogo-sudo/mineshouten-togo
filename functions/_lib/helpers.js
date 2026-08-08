@@ -20,7 +20,11 @@ export const OWNER_EMAIL = 'mineshouten.togo@gmail.com';
 export const FALLBACK_TURNSTILE_SECRET_KEY = '0x4AAAAAAEKOKCqQZ28evVCYoA1jFPtJyCU';
 
 // ⚠️ مفتاح API الخاص بـ Resend (لإرسال بريد الطلبات وبريد نموذج التواصل).
-export const FALLBACK_RESEND_API_KEY = 're_jhaZB3VK_GW5kykymp7GMHGd783pzqXDH';
+// ⚠️ لا تضع مفتاح Resend الحقيقي هنا أبدًا — GitHub يكتشف مفاتيح Resend تلقائيًا
+// (Secret Scanning) ويطلب إلغاءها فورًا بمجرد رفعها لأي مستودع. المفتاح الحقيقي
+// يُضاف حصريًا من لوحة Cloudflare Pages: Settings → Environment variables →
+// أضف RESEND_API_KEY كـ Secret. بدونه، إرسال البريد لن يعمل.
+export const FALLBACK_RESEND_API_KEY = '';
 
 export const PRODUCTS = {
   set3:       { name: '季節のおまかせ3種',              price: 2700, weight: 750  },
