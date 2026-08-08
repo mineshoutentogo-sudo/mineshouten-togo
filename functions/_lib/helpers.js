@@ -115,7 +115,7 @@ export async function sendContactEmail(env, c) {
     <hr>
     <p><b>メッセージ:</b><br>${escapeHtml(c.message).replace(/\n/g, '<br>')}</p>
   `;
-  await fetch('https://api.resend.com/emails', {
+  const res = await fetch('https://api.resend.com/emails', {
     method: 'POST',
     headers: {
       'Content-Type': 'application/json',
@@ -129,6 +129,12 @@ export async function sendContactEmail(env, c) {
       html,
     }),
   });
+  // ⚠️ إن لم نتحقق من رد Resend هنا، أي فشل بالإرسال (مفتاح خاطئ، بريد مرفوض...)
+  // يمر بصمت والموقع يعرض للزبون "تم الإرسال" رغم عدم وصول أي بريد فعليًا.
+  if (!res.ok) {
+    const detail = await res.text().catch(() => '');
+    throw new Error(`Resend API error (${res.status}): ${detail}`);
+  }
 }
 
 // --- إرسال بريد إشعار عبر Resend ---
@@ -149,7 +155,7 @@ export async function sendOrderEmail(env, payment) {
     <p><b>ご注文内容:</b><br>${escapeHtml(md.order_summary || '(内訳なし)').replace(/\n/g, '<br>')}</p>
     <p style="color:#999;font-size:12px">Payment ID: ${escapeHtml(payment.id)}</p>
   `;
-  await fetch('https://api.resend.com/emails', {
+  const res = await fetch('https://api.resend.com/emails', {
     method: 'POST',
     headers: {
       'Content-Type': 'application/json',
@@ -162,4 +168,8 @@ export async function sendOrderEmail(env, payment) {
       html,
     }),
   });
+  if (!res.ok) {
+    const detail = await res.text().catch(() => '');
+    throw new Error(`Resend API error (${res.status}): ${detail}`);
+  }
 }
