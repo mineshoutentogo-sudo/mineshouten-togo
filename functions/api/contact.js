@@ -41,7 +41,11 @@ export async function onRequestPost(context) {
   try {
     await sendContactEmail(env, contact);
   } catch (err) {
-    return new Response(JSON.stringify({ error: 'メール送信に失敗しました', detail: String(err) }), { status: 500, headers });
+    // ⚠️ لا نُرجع تفاصيل الخطأ الداخلية (err) للمتصفح — أي زائر يفتح
+    // أدوات المطوّر يقدر يشوفها. نسجّلها بسجلات Cloudflare فقط (Logs / Tail)
+    // ونعرض للزبون رسالة عامة بدل ذلك.
+    console.error('sendContactEmail failed:', err);
+    return new Response(JSON.stringify({ error: 'メール送信に失敗しました。時間をおいて再度お試しいただくか、お電話にてご連絡ください。' }), { status: 500, headers });
   }
 
   return new Response(JSON.stringify({ ok: true }), { headers });

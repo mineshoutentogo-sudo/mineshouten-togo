@@ -460,10 +460,16 @@ footer{background:var(--ink);color:#cfc8bd;padding:56px 0 28px}
 .f-brand{max-width:30em}
 .f-brand .brow{display:flex;align-items:center;gap:12px;margin-bottom:16px}
 .f-brand .brow .logo{width:46px;height:46px;object-fit:cover;border-radius:12px}
-.credit{margin-top:18px;text-align:center;font-size:12px;color:#7c7468;letter-spacing:.04em}
-.credit a{color:var(--teal);text-decoration:none;font-weight:700;border-bottom:1px solid transparent;transition:border-color .2s}
-.credit a:hover{border-color:var(--teal)}
-.credit .hx{display:inline-flex;align-items:center;gap:5px}
+.credit{margin-top:26px;display:flex;justify-content:center}
+.credit .hx{display:inline-flex;align-items:center;gap:12px;padding:10px 18px 10px 12px;border-radius:14px;
+  background:rgba(255,255,255,.035);border:1px solid rgba(255,255,255,.09);text-decoration:none;
+  transition:background .25s,border-color .25s,transform .25s}
+.credit .hx:hover{background:rgba(255,255,255,.07);border-color:rgba(111,186,200,.35);transform:translateY(-1px)}
+.credit .hx-logo{width:30px;height:30px;object-fit:contain;flex:none}
+.credit .hx-txt{display:flex;flex-direction:column;gap:2px;line-height:1.3;text-align:left}
+.credit .hx-made{font-size:11.5px;color:#9a9284;letter-spacing:.01em}
+.credit .hx-made b{color:#e9e4da;font-weight:700;letter-spacing:.02em}
+.credit .hx-tag{font-family:'Shippori Mincho',serif;font-size:12px;color:var(--teal);letter-spacing:.03em}
 .f-brand .brow .bt .en{font-size:9px;letter-spacing:.22em;color:var(--teal);font-weight:700}
 .f-brand .brow .bt .jp{font-family:'Shippori Mincho',serif;font-size:20px;font-weight:700;color:#fff}
 .f-brand p{font-size:13.5px;line-height:1.85;color:#a59e93}
@@ -1094,9 +1100,13 @@ footer{background:var(--ink);color:#cfc8bd;padding:56px 0 28px}
       <span class="dot">・</span>
       <button type="button" id="openTokusho" data-tab="tokusho">特定商取引法に基づく表記</button>
     </div>
-    <p class="credit">Designed &amp; built by
-      <a class="hx" href="#" target="_blank" rel="noopener">HexaPoint
-        <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.4" stroke-linecap="round" stroke-linejoin="round"><polygon points="12 2 20 7 20 17 12 22 4 17 4 7"/></svg>
+    <p class="credit">
+      <a class="hx" href="https://hexapoint.pages.dev/" target="_blank" rel="noopener">
+        <img src="hexapoint-logo.png" alt="HexaPoint" class="hx-logo">
+        <span class="hx-txt">
+          <span class="hx-made">Designed &amp; built by <b>HexaPoint</b></span>
+          <span class="hx-tag">ビジネスに、プロの顔を。</span>
+        </span>
       </a>
     </p>
   </div>
@@ -1117,28 +1127,63 @@ footer{background:var(--ink);color:#cfc8bd;padding:56px 0 28px}
   <div class="legal-body">
 
     <div class="legal-pane active" id="pane-terms">
+      <p style="margin-bottom:18px;font-size:12.5px;color:var(--muted)">本規約は、民法第548条の2に定める「定型約款」として、本サイトのご利用に際して適用されます。</p>
+
       <h4>第1条（適用）</h4>
-      <p>本規約は、峯商店（以下「当店」といいます）が運営するウェブサイト（以下「本サイト」といいます）を通じてお客様が商品をご注文いただく際の条件を定めるものです。本サイトをご利用いただいたお客様は、本規約に同意したものとみなします。</p>
+      <p>本規約は、峯商店（以下「当店」といいます）が運営するウェブサイト「峯商店 CURRY &amp; CAFÉ」（以下「本サイト」といいます）を通じてお客様（以下「お客様」といいます）が商品をご注文いただく際の一切の条件を定めるものです。お客様は、本サイトを利用し、または商品をご注文いただいた時点で、本規約の内容に同意したものとみなします。</p>
 
-      <h4>第2条（ご注文・お支払い）</h4>
-      <p>本サイトでのご注文は、お客様が商品を選択し、決済代行サービス「KOMOJU」を通じてお支払い手続きを完了した時点で成立します。お支払い方法は、PayPay・コンビニ決済・クレジットカード等、KOMOJUが提供する方法からお選びいただけます。</p>
+      <h4>第2条（本規約の範囲）</h4>
+      <p>本規約のほか、本サイトに掲載する個別のご案内・注意事項・特定商取引法に基づく表記（以下「個別規定」といいます）も、本規約の一部を構成するものとします。個別規定の内容が本規約と抵触する場合には、個別規定の内容が優先して適用されるものとします。</p>
 
-      <h4>第3条（商品の発送）</h4>
-      <p>商品はクール便（冷凍）にて、随時発送いたします。天候・配送業者の都合等によりお届けが前後する場合がございます。</p>
+      <h4>第3条（ご注文の成立）</h4>
+      <p>お客様は、本サイト上で商品を選択し、お届け先等の必要事項を入力のうえ、内容をご確認いただく画面（最終確認画面）にて、ご注文内容（商品名・数量・販売価格・送料を含む支払総額・お支払方法・お届け予定時期・キャンセル条件）を今一度ご確認ください。ご注文は、お客様が当該内容にご同意のうえ、決済代行サービス「KOMOJU」を通じてお支払い手続きを完了した時点で成立するものとします。</p>
+      <p style="margin-top:10px">当店は、入力内容の不備、在庫状況その他やむを得ない事由がある場合、ご注文の全部または一部をお受けできないことがあります。この場合、当店は速やかにお客様へその旨をご連絡いたします。</p>
 
-      <h4>第4条（キャンセル・返品）</h4>
-      <p>商品の性質上（冷凍食品）、お客様のご都合による返品・交換はお受けできません。商品に不備があった場合は、お手数ですがお受け取り後3日以内にお電話（080-3957-5729）、Instagram DM、またはお問い合わせフォームよりご連絡ください。</p>
+      <h4>第4条（お支払い）</h4>
+      <p>お支払い方法は、PayPay・コンビニ決済・クレジットカード等、決済代行サービス「KOMOJU」が提供する方法からお選びいただけます。お支払いは、ご注文時（決済完了時）に発生するものとします。</p>
 
-      <h4>第5条（禁止事項）</h4>
-      <p>お客様は、本サイトのご利用にあたり、法令に違反する行為、当店または第三者に不利益・損害を与える行為を行ってはならないものとします。</p>
+      <h4>第5条（商品の発送・お届け）</h4>
+      <p>商品はクール便（冷凍）にて、ご入金確認後、随時発送いたします。天候・配送業者の都合その他当店の責に帰さない事由により、お届け時期が前後する場合がございます。あらかじめご了承ください。</p>
 
-      <h4>第6条（免責事項）</h4>
-      <p>当店は、天災・通信障害等、当店の責に帰さない事由により生じた損害について、責任を負わないものとします。</p>
+      <h4>第6条（キャンセル・返品について）</h4>
+      <p>本サイトでの取引は、特定商取引に関する法律上の「通信販売」に該当し、同法に定めるクーリング・オフ制度（訪問販売等に適用される法定の無条件解除権）の対象とはなりません。返品・交換の可否は、以下の当店独自の定めによるものとします。</p>
+      <p style="margin-top:10px">商品の性質上（冷凍食品）、お客様のご都合による返品・交換はお受けできません。商品に不備（品違い・破損等）があった場合に限り、お受け取り後3日以内に、お電話（080-3957-5729）、Instagram DM、または本サイトのお問い合わせフォームよりご連絡ください。当店にて内容を確認のうえ、交換または返金にて対応いたします。</p>
 
-      <h4>第7条（規約の変更）</h4>
-      <p>当店は、必要と判断した場合、お客様への事前の通知なく本規約を変更することができるものとします。変更後の規約は、本サイトに掲載した時点より効力を生じるものとします。</p>
+      <h4>第7条（禁止事項）</h4>
+      <p>お客様は、本サイトのご利用にあたり、次の各号のいずれかに該当する行為をしてはならないものとします。</p>
+      <ul style="margin:10px 0 0 1.3em;padding:0;font-size:14.5px;line-height:1.9;color:inherit">
+        <li>法令または公序良俗に違反する行為</li>
+        <li>虚偽の情報を用いてご注文する行為、その他不正な目的をもって本サイトを利用する行為</li>
+        <li>当店または第三者の知的財産権、肖像権その他の権利を侵害する行為</li>
+        <li>本サイトの運営を妨げる行為、または本サイトのシステムに不正にアクセスする行為</li>
+        <li>その他、当店が不適切と判断する行為</li>
+      </ul>
 
-      <p style="margin-top:22px;font-size:12px;color:var(--muted)">制定日：2026年7月12日</p>
+      <h4>第8条（個人情報の取扱い）</h4>
+      <p>当店は、お客様からお預かりする氏名・住所・電話番号・メールアドレス等の個人情報を、「個人情報の保護に関する法律」（平成15年法律第57号）その他関係法令を遵守し、ご注文の処理・商品の発送・お問い合わせへの対応に必要な範囲でのみ利用いたします。当店は、決済処理に必要な範囲でKOMOJU（決済代行事業者）へ、配送に必要な範囲で配送業者へ情報を提供する場合を除き、お客様の同意なく個人情報を第三者へ提供することはありません。</p>
+
+      <h4>第9条（アレルギー表示について）</h4>
+      <p>本サイトで取り扱う商品の原材料・アレルギー情報は、「食品表示法」（平成25年法律第70号）に基づき、可能な範囲で商品ページに記載しております。食物アレルギーをお持ちのお客様は、ご注文前に必ず原材料表示をご確認いただくか、お問い合わせフォームよりご確認ください。表示内容の確認不足によるトラブルについて、当店は責任を負いかねます。</p>
+
+      <h4>第10条（知的財産権）</h4>
+      <p>本サイトに掲載する文章・写真・ロゴその他一切のコンテンツの著作権その他の知的財産権は、当店または正当な権利を有する第三者に帰属します。お客様は、当店の事前の許諾なく、これらを複製・転用・改変してはならないものとします。</p>
+
+      <h4>第11条（免責事項）</h4>
+      <p>当店は、天災地変・通信障害・停電その他当店の責に帰すことのできない事由により生じた損害について、責任を負わないものとします。</p>
+      <p style="margin-top:10px">当店の債務不履行または不法行為により、通常生ずべき損害の範囲内でお客様に損害が生じた場合、当店は、当店に故意または重大な過失がある場合を除き、お客様が実際にお支払いいただいた商品代金相当額を上限として賠償責任を負うものとします。</p>
+
+      <h4>第12条（準拠法・合意管轄）</h4>
+      <p>本規約の解釈にあたっては、日本法を準拠法とします。本サイトの利用に関して当店とお客様との間に紛争が生じた場合には、鹿児島地方裁判所を第一審の専属的合意管轄裁判所とします。</p>
+
+      <h4>第13条（規約の変更）</h4>
+      <p>当店は、民法第548条の4の定めるところにより、次の各号のいずれかに該当する場合には、お客様との個別の合意を要することなく本規約を変更できるものとします。</p>
+      <ul style="margin:10px 0 0 1.3em;padding:0;font-size:14.5px;line-height:1.9;color:inherit">
+        <li>本規約の変更が、お客様の一般の利益に適合するとき</li>
+        <li>本規約の変更が、契約をした目的に反せず、かつ、変更の必要性、変更後の内容の相当性その他変更に係る事情に照らして合理的なものであるとき</li>
+      </ul>
+      <p style="margin-top:10px">当店は、本規約を変更する場合には、変更の内容及び効力発生時期を、効力発生時期が到来するまでに本サイト上への掲載その他適切な方法により周知いたします。</p>
+
+      <p style="margin-top:22px;font-size:12px;color:var(--muted)">制定日：2026年7月12日<br>最終改定日：2026年8月9日</p>
     </div>
 
     <div class="legal-pane" id="pane-tokusho">

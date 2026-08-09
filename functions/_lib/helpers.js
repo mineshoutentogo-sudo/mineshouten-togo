@@ -17,7 +17,10 @@ export const FALLBACK_TEST_SECRET_KEY = 'sk_test_d3xty0w30lv04dhdiyqd4dm8';
 export const OWNER_EMAIL = 'mineshouten.togo@gmail.com';
 
 // ⚠️ Secret Key الخاص بـ Cloudflare Turnstile (نموذج CONTACT).
-export const FALLBACK_TURNSTILE_SECRET_KEY = '0x4AAAAAAEKOKCqQZ28evVCYoA1jFPtJyCU';
+// ⚠️ لا تضع المفتاح الحقيقي هنا أبدًا — أي كود يُرفع لـ GitHub يبقى مرئيًا
+// بتاريخ الـ commits للأبد حتى لو حُذف لاحقًا. أضفه حصريًا من لوحة Cloudflare
+// Pages: Settings → Environment variables → أضف TURNSTILE_SECRET_KEY كـ Secret.
+export const FALLBACK_TURNSTILE_SECRET_KEY = '';
 
 // ⚠️ مفتاح API الخاص بـ Resend (لإرسال بريد الطلبات وبريد نموذج التواصل).
 // ⚠️ لا تضع مفتاح Resend الحقيقي هنا أبدًا — GitHub يكتشف مفاتيح Resend تلقائيًا

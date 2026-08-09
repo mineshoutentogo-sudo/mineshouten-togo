@@ -118,15 +118,18 @@ export async function onRequestPost(context) {
     const session = await komojuRes.json();
 
     if (!komojuRes.ok || !session.session_url) {
+      // ⚠️ لا نُرجع رد KOMOJU الخام (session) للمتصفح — قد يحتوي تفاصيل داخلية.
+      console.error('KOMOJU session creation failed:', session);
       return new Response(
-        JSON.stringify({ error: 'KOMOJUセッションの作成に失敗しました', detail: session }),
+        JSON.stringify({ error: 'ただいま決済処理でエラーが発生しております。時間をおいて再度お試しいただくか、お電話にてご連絡ください。' }),
         { status: 502, headers }
       );
     }
 
     return new Response(JSON.stringify({ session_url: session.session_url }), { headers });
   } catch (err) {
-    return new Response(JSON.stringify({ error: 'サーバーエラー', detail: String(err) }), {
+    console.error('checkout error:', err);
+    return new Response(JSON.stringify({ error: 'サーバーエラーが発生しました。時間をおいて再度お試しください。' }), {
       status: 500,
       headers,
     });
