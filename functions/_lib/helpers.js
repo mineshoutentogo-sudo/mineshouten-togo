@@ -55,6 +55,59 @@ export const SHIPPING_SIZES = [
 // 都道府県 → 地域キー（有効な値の一覧としても使用）
 export const VALID_REGIONS = ['kagoshima','hokkaido','tohoku_n','tohoku_s','kanto','niigata_nagano','hokuriku','tokai','kinki','chugoku','shikoku','kyushu','okinawa'];
 
+// --- 電話番号を数字だけに正規化（KVのキーとして使用。表記ゆれ「090-1234-5678」「09012345678」を統一） ---
+export function normalizePhone(phone) {
+  return String(phone || '').replace(/[^\d]/g, '');
+}
+
+const CUSTOMER_KV_PREFIX = 'customer:';
+const ATTEMPT_KV_PREFIX  = 'lookup_fail:';
+const MAX_ATTEMPTS = 5;             // 30分あたりの最大失敗回数
+const ATTEMPT_WINDOW_SEC = 30 * 60; // 30分
+const CUSTOMER_TTL_SEC = 60 * 60 * 24 * 365; // 1年間保持（それ以降は自動削除）
+
+// --- 決済完了時に呼び出し先情報をKVへ保存（次回注文時の呼び出し用） ---
+export async function saveCustomerRecord(env, customer) {
+  if (!env.CUSTOMERS_KV) return; // KVが未設定の環境では何もしない（機能を無効化するだけで落とさない）
+  const phone = normalizePhone(customer.phone);
+  if (!phone) return;
+  const record = {
+    name: customer.name || '',
+    email: customer.email || '',
+    pref: customer.pref || '',
+    postal: customer.postal || '',
+    address: customer.address || '',
+    updatedAt: new Date().toISOString(),
+  };
+  await env.CUSTOMERS_KV.put(CUSTOMER_KV_PREFIX + phone, JSON.stringify(record), { expirationTtl: CUSTOMER_TTL_SEC });
+}
+
+// --- 電話番号＋郵便番号下4桁で呼び出し先情報を照会（総当たり対策のレート制限つき） ---
+export async function lookupCustomerRecord(env, phoneRaw, postal4) {
+  if (!env.CUSTOMERS_KV) return { ok: false, reason: 'unavailable' };
+  const phone = normalizePhone(phoneRaw);
+  if (!phone || !/^\d{4}$/.test(String(postal4 || ''))) return { ok: false, reason: 'invalid' };
+
+  const attemptKey = ATTEMPT_KV_PREFIX + phone;
+  const attemptsRaw = await env.CUSTOMERS_KV.get(attemptKey);
+  const attempts = attemptsRaw ? parseInt(attemptsRaw, 10) : 0;
+  if (attempts >= MAX_ATTEMPTS) return { ok: false, reason: 'locked' };
+
+  const dataRaw = await env.CUSTOMERS_KV.get(CUSTOMER_KV_PREFIX + phone);
+  const record = dataRaw ? JSON.parse(dataRaw) : null;
+  const last4 = record ? String(record.postal || '').replace(/[^\d]/g, '').slice(-4) : null;
+
+  if (!record || last4 !== String(postal4)) {
+    // فشل: نزيد عداد المحاولات (مو ندلّ الزبون هل الرقم غير موجود أصلاً أو الرمز غلط، عشان ما نسرّب معلومة)
+    await env.CUSTOMERS_KV.put(attemptKey, String(attempts + 1), { expirationTtl: ATTEMPT_WINDOW_SEC });
+    return { ok: false, reason: 'not_found' };
+  }
+
+  // نجاح: نصفّر عداد المحاولات
+  if (attempts > 0) await env.CUSTOMERS_KV.delete(attemptKey);
+  return { ok: true, record };
+}
+
 export function calcShipping(totalWeight, subtotal, regionKey) {
   for (const s of SHIPPING_SIZES) {
     if (totalWeight <= s.maxWeight) {

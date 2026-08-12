@@ -365,10 +365,20 @@ section.block{padding:78px 0}
 .cart-lines{display:grid;position:relative}
 .cart-empty{color:rgba(255,255,255,.6);font-size:13.5px;text-align:center;padding:22px 12px;
   border:1px dashed rgba(255,255,255,.22);border-radius:12px}
-.cline{display:flex;justify-content:space-between;gap:10px;padding:11px 0;border-bottom:1px solid rgba(255,255,255,.12);font-size:14px}
+.cline{padding:11px 0;border-bottom:1px solid rgba(255,255,255,.12);font-size:14px}
+.cline .cl-top{display:flex;justify-content:space-between;align-items:flex-start;gap:8px}
 .cline .cl-name{line-height:1.35}
 .cline .cl-q{color:rgba(255,255,255,.6);font-size:12px}
 .cline .cl-amt{font-family:'Shippori Mincho',serif;font-weight:700;white-space:nowrap}
+.cline .cl-remove{background:none;border:0;color:rgba(255,255,255,.4);font-size:17px;line-height:1;
+  padding:2px 3px;cursor:pointer;flex:none;border-radius:6px;transition:color .15s,background .15s}
+.cline .cl-remove:hover{color:#fff;background:rgba(255,255,255,.12)}
+.cline .cl-bottom{display:flex;justify-content:space-between;align-items:center;margin-top:9px}
+.cline .cl-stepper{display:flex;align-items:center;border:1px solid rgba(255,255,255,.25);border-radius:20px;overflow:hidden}
+.cline .cl-stepper button{background:rgba(255,255,255,.08);border:0;color:#fff;width:27px;height:27px;
+  font-size:15px;cursor:pointer;display:flex;align-items:center;justify-content:center;transition:background .15s}
+.cline .cl-stepper button:hover{background:rgba(255,255,255,.2)}
+.cline .cl-stepper .cl-qty{width:26px;text-align:center;font-size:13px}
 .cart-total{display:flex;justify-content:space-between;align-items:baseline;margin:18px 0 2px;position:relative}
 .cart-total .lab{font-size:14px;color:rgba(255,255,255,.82)}
 .cart-total .amt{font-family:'Shippori Mincho',serif;font-size:30px;font-weight:800}
@@ -396,12 +406,31 @@ section.block{padding:78px 0}
 .ship-form .sf-row{display:flex;gap:8px}
 .ship-form label{display:block;margin-bottom:10px}
 .ship-form .sf-lab{display:block;font-size:11.5px;color:rgba(255,255,255,.58);margin-bottom:4px}
+
+.recall-box{margin:-4px 0 16px}
+.recall-toggle{background:none;border:0;color:var(--teal);font-size:12.5px;text-decoration:underline;
+  text-underline-offset:2px;cursor:pointer;padding:2px 0}
+.recall-toggle:hover{color:#fff}
+.recall-panel{margin-top:10px;padding:12px 14px;background:rgba(255,255,255,.05);
+  border:1px solid rgba(255,255,255,.14);border-radius:10px}
+.recall-note{font-size:11.5px;color:rgba(255,255,255,.6);margin-bottom:9px;line-height:1.6}
+.recall-panel .sf-row{align-items:flex-end}
+.recall-submit{background:var(--teal);border:0;color:#123138;font-weight:700;font-size:13px;
+  border-radius:8px;padding:0 16px;height:40px;cursor:pointer;white-space:nowrap;flex:none}
+.recall-submit:hover{filter:brightness(1.08)}
+.recall-submit:disabled{opacity:.5;cursor:not-allowed}
+.recall-msg{font-size:11.5px;margin-top:8px;min-height:14px;line-height:1.6}
+.recall-msg.ok{color:var(--teal)}
+.recall-msg.err{color:#ffb3b3}
 .ship-form input{width:100%;background:rgba(255,255,255,.10);border:1px solid rgba(255,255,255,.20);
   border-radius:10px;padding:9px 11px;color:#fff;font-family:inherit;font-size:13.5px;transition:border-color .2s,background .2s}
 .ship-form input::placeholder{color:rgba(255,255,255,.35)}
 .ship-form input:focus{outline:none;border-color:#fff;background:rgba(255,255,255,.15)}
 .ship-form input.err{border-color:#ff9e9e}
 .ship-form .sf-err{font-size:11.5px;color:#ffb3b3;margin:-6px 0 10px;display:none}
+.postal-hint{display:block;font-size:11px;margin-top:4px;min-height:14px;color:rgba(255,255,255,.55)}
+.postal-hint.ok{color:var(--teal)}
+.postal-hint.err{color:#ffb3b3}
 .ship-form select{width:100%;background:rgba(255,255,255,.10);border:1px solid rgba(255,255,255,.20);
   border-radius:10px;padding:9px 11px;color:#fff;font-family:inherit;font-size:13.5px;transition:border-color .2s,background .2s}
 .ship-form select:focus{outline:none;border-color:#fff;background:rgba(255,255,255,.15)}
@@ -1008,6 +1037,21 @@ footer{background:var(--ink);color:#cfc8bd;padding:56px 0 28px}
     </label>
     <div class="sf-err" id="err-shipPhone">電話番号を入力してください。</div>
 
+    <div class="recall-box">
+      <button type="button" id="recallToggle" class="recall-toggle">↺ 前回のご注文情報を呼び出す</button>
+      <div id="recallPanel" class="recall-panel" style="display:none">
+        <p class="recall-note">上の電話番号と、前回ご注文時の郵便番号 下4桁を入力してください。</p>
+        <div class="sf-row">
+          <label style="flex:1">
+            <span class="sf-lab">郵便番号 下4桁</span>
+            <input type="text" id="recallPostal4" placeholder="例）4567" inputmode="numeric" maxlength="4">
+          </label>
+          <button type="button" id="recallSubmit" class="recall-submit">呼び出す</button>
+        </div>
+        <div id="recallMsg" class="recall-msg"></div>
+      </div>
+    </div>
+
     <label>
       <span class="sf-lab">メールアドレス</span>
       <input type="email" id="shipEmail" placeholder="例）example@mail.com" autocomplete="email">
@@ -1025,7 +1069,8 @@ footer{background:var(--ink);color:#cfc8bd;padding:56px 0 28px}
     <div class="sf-row">
       <label style="flex:0 0 40%">
         <span class="sf-lab">郵便番号</span>
-        <input type="text" id="shipPostal" placeholder="123-4567" autocomplete="postal-code">
+        <input type="text" id="shipPostal" placeholder="123-4567" autocomplete="postal-code" inputmode="numeric" maxlength="8">
+        <span id="shipPostalHint" class="postal-hint"></span>
       </label>
       <label style="flex:1">
         <span class="sf-lab">ご住所</span>
@@ -1033,6 +1078,11 @@ footer{background:var(--ink);color:#cfc8bd;padding:56px 0 28px}
       </label>
     </div>
     <div class="sf-err" id="err-shipAddress">郵便番号とご住所を入力してください。</div>
+
+    <label>
+      <span class="sf-lab">建物名・部屋番号など（任意）</span>
+      <input type="text" id="shipAddress2" placeholder="例）〇〇マンション 101号室" autocomplete="address-line2">
+    </label>
   </form>
 
   <button id="komojuBtn" class="komoju-btn" type="button" style="display:none">
@@ -1341,6 +1391,115 @@ footer{background:var(--ink);color:#cfc8bd;padding:56px 0 28px}
   });
   shipPrefEl.addEventListener('change', render);
 
+  // ===== 郵便番号から住所を自動入力（zipcloud: 総務省統計局のデータを使った無料API、APIキー不要） =====
+  var shipPostalEl  = document.getElementById('shipPostal');
+  var shipAddressEl = document.getElementById('shipAddress');
+  var postalHintEl  = document.getElementById('shipPostalHint');
+  var postalLookupSeq = 0; // لتجاهل ردود قديمة لو المستخدم عدّل الرقم بسرعة
+
+  function setPostalHint(text, kind){
+    postalHintEl.textContent = text || '';
+    postalHintEl.className = 'postal-hint' + (kind ? ' ' + kind : '');
+  }
+
+  // تنسيق تلقائي أثناء الكتابة: 1234567 → 123-4567
+  shipPostalEl.addEventListener('input', function(){
+    var digits = shipPostalEl.value.replace(/[^\d]/g, '').slice(0, 7);
+    shipPostalEl.value = digits.length > 3 ? digits.slice(0,3) + '-' + digits.slice(3) : digits;
+
+    if (digits.length !== 7) { setPostalHint(''); return; }
+
+    var seq = ++postalLookupSeq;
+    setPostalHint('住所を検索しています…');
+
+    fetch('https://zipcloud.ibsnet.co.jp/api/search?zipcode=' + digits)
+      .then(function(res){ return res.json(); })
+      .then(function(data){
+        if (seq !== postalLookupSeq) return; // المستخدم عدّل الرقم بعد الطلب، تجاهل هذا الرد
+        var r = data && data.results && data.results[0];
+        if (data.status !== 200 || !r) {
+          setPostalHint('該当する住所が見つかりませんでした。手動でご入力ください。', 'err');
+          return;
+        }
+        var full = r.address1 + r.address2 + r.address3;
+        // لا نستبدل ما كتبه الزبون يدويًا إذا كان قد أضاف تفاصيل أكثر (رقم مبنى وغيره)
+        if (!shipAddressEl.value || shipAddressEl.dataset.autofilled === '1') {
+          shipAddressEl.value = full;
+          shipAddressEl.dataset.autofilled = '1';
+        }
+        var match = PREFECTURES.find(function(p){ return p[0] === r.address1; });
+        if (match) { shipPrefEl.value = match[1]; render(); }
+        setPostalHint('住所を自動入力しました（続きの番地をご確認ください）', 'ok');
+      })
+      .catch(function(){
+        if (seq !== postalLookupSeq) return;
+        setPostalHint('住所の自動取得に失敗しました。手動でご入力ください。', 'err');
+      });
+  });
+
+  // إذا عدّل الزبون العنوان يدويًا بنفسه، نتوقف عن الكتابة فوقه بالمرات القادمة
+  shipAddressEl.addEventListener('input', function(){
+    if (shipAddressEl.dataset.autofilled !== '1') return;
+    shipAddressEl.dataset.autofilled = '0';
+  });
+
+  // ===== استحضار بيانات الطلب السابق (رقم الهاتف + آخر 4 أرقام من الرمز البريدي) =====
+  var recallToggle  = document.getElementById('recallToggle');
+  var recallPanel   = document.getElementById('recallPanel');
+  var recallPostal4 = document.getElementById('recallPostal4');
+  var recallSubmit  = document.getElementById('recallSubmit');
+  var recallMsgEl   = document.getElementById('recallMsg');
+
+  recallToggle.addEventListener('click', function(){
+    var open = recallPanel.style.display !== 'none';
+    recallPanel.style.display = open ? 'none' : 'block';
+  });
+
+  function setRecallMsg(text, kind){
+    recallMsgEl.textContent = text || '';
+    recallMsgEl.className = 'recall-msg' + (kind ? ' ' + kind : '');
+  }
+
+  recallPostal4.addEventListener('input', function(){
+    recallPostal4.value = recallPostal4.value.replace(/[^\d]/g, '').slice(0, 4);
+  });
+
+  recallSubmit.addEventListener('click', function(){
+    var phone = document.getElementById('shipPhone').value.trim();
+    var postal4 = recallPostal4.value.trim();
+    if (!phone) { setRecallMsg('先に電話番号をご入力ください。', 'err'); return; }
+    if (postal4.length !== 4) { setRecallMsg('郵便番号の下4桁（数字4桁）を入力してください。', 'err'); return; }
+
+    recallSubmit.disabled = true;
+    setRecallMsg('検索しています…');
+
+    fetch('/api/customer-lookup', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ phone: phone, postal4: postal4 }),
+    })
+      .then(function(res){ return res.json().then(function(data){ return { ok: res.ok, data: data }; }); })
+      .then(function(result){
+        recallSubmit.disabled = false;
+        if (!result.ok) {
+          setRecallMsg(result.data.error || '該当する情報が見つかりませんでした。', 'err');
+          return;
+        }
+        var d = result.data;
+        document.getElementById('shipName').value = d.name || '';
+        document.getElementById('shipEmail').value = d.email || '';
+        document.getElementById('shipPostal').value = d.postal || '';
+        shipAddressEl.value = d.address || '';
+        shipAddressEl.dataset.autofilled = '0'; // بيانات مؤكدة من طلب سابق، لا نعتبرها "تعبئة تلقائية مؤقتة"
+        if (d.pref) { shipPrefEl.value = d.pref; render(); }
+        setRecallMsg('前回のご注文情報を呼び出しました。内容をご確認ください。', 'ok');
+      })
+      .catch(function(){
+        recallSubmit.disabled = false;
+        setRecallMsg('通信エラーが発生しました。時間をおいて再度お試しください。', 'err');
+      });
+  });
+
   var fabCart  = document.getElementById('fabCart');
   var fabCount = document.getElementById('fabCount');
   var fabTotal = document.getElementById('fabTotal');
@@ -1377,9 +1536,20 @@ footer{background:var(--ink);color:#cfc8bd;padding:56px 0 28px}
       linesEl.innerHTML = ids.map(function(id){
         var p = PRODUCTS[id], q = cart[id], amt = p.price * q;
         subtotal += amt; count += q;
-        return '<div class="cline"><span class="cl-name">'+p.name+
-               '<br><span class="cl-q">'+yen(p.price)+' × '+q+'</span></span>'+
-               '<span class="cl-amt">'+yen(amt)+'</span></div>';
+        return '<div class="cline" data-id="'+id+'">'
+             +   '<div class="cl-top">'
+             +     '<span class="cl-name">'+p.name+'<br><span class="cl-q">'+yen(p.price)+' 単価</span></span>'
+             +     '<button type="button" class="cl-remove" data-act="remove" aria-label="'+p.name+'をカートから削除">✕</button>'
+             +   '</div>'
+             +   '<div class="cl-bottom">'
+             +     '<div class="cl-stepper">'
+             +       '<button type="button" data-act="dec" aria-label="'+p.name+'を減らす">−</button>'
+             +       '<span class="cl-qty">'+q+'</span>'
+             +       '<button type="button" data-act="inc" aria-label="'+p.name+'を増やす">＋</button>'
+             +     '</div>'
+             +     '<span class="cl-amt">'+yen(amt)+'</span>'
+             +   '</div>'
+             + '</div>';
       }).join('');
     }
 
@@ -1427,18 +1597,35 @@ footer{background:var(--ink);color:#cfc8bd;padding:56px 0 28px}
     }
   }
 
+  // تحديث كمية منتج من أي مكان بالصفحة (شبكة المنتجات أو الكارت نفسه) مع مزامنة الاثنين
+  function setQty(id, newQty){
+    newQty = Math.max(0, Math.min(99, newQty));
+    cart[id] = newQty;
+    var st = document.querySelector('.stepper[data-id="'+id+'"]');
+    var card = document.querySelector('.item-card[data-id="'+id+'"]');
+    if(st){ st.querySelector('.qty').textContent = newQty; }
+    if(card){ card.classList.toggle('active', newQty > 0); }
+    render();
+  }
+
   // steppers across BOTH sections (ids are unique site-wide)
   document.querySelectorAll('.stepper').forEach(function(st){
     var id = st.getAttribute('data-id');
     if(!(id in cart)) return;
-    var q  = st.querySelector('.qty');
-    var card = document.querySelector('.item-card[data-id="'+id+'"]');
-    st.querySelector('.inc').addEventListener('click', function(){
-      if(cart[id] < 99){ cart[id]++; q.textContent = cart[id]; if(card) card.classList.add('active'); render(); }
-    });
-    st.querySelector('.dec').addEventListener('click', function(){
-      if(cart[id] > 0){ cart[id]--; q.textContent = cart[id]; if(cart[id]===0 && card) card.classList.remove('active'); render(); }
-    });
+    st.querySelector('.inc').addEventListener('click', function(){ setQty(id, cart[id] + 1); });
+    st.querySelector('.dec').addEventListener('click', function(){ setQty(id, cart[id] - 1); });
+  });
+
+  // أزرار الكمية والحذف داخل الكارت نفسه (event delegation لأن المحتوى يُعاد رسمه باستمرار)
+  linesEl.addEventListener('click', function(e){
+    var btn = e.target.closest('[data-act]');
+    if(!btn) return;
+    var line = btn.closest('.cline');
+    var id = line && line.getAttribute('data-id');
+    if(!id || !(id in cart)) return;
+    if(btn.getAttribute('data-act') === 'inc')    setQty(id, cart[id] + 1);
+    else if(btn.getAttribute('data-act') === 'dec')    setQty(id, cart[id] - 1);
+    else if(btn.getAttribute('data-act') === 'remove') setQty(id, 0);
   });
 
   // منع إعادة تحميل الصفحة عند الضغط على Enter داخل حقول نموذج الشحن
@@ -1446,13 +1633,16 @@ footer{background:var(--ink);color:#cfc8bd;padding:56px 0 28px}
 
   // --- shipping form: read + validate ---
   function readShipping(){
+    var address  = document.getElementById('shipAddress').value.trim();
+    var address2 = document.getElementById('shipAddress2').value.trim();
     return {
       name:    document.getElementById('shipName').value.trim(),
       phone:   document.getElementById('shipPhone').value.trim(),
       email:   document.getElementById('shipEmail').value.trim(),
       pref:    shipPrefEl.value,
       postal:  document.getElementById('shipPostal').value.trim(),
-      address: document.getElementById('shipAddress').value.trim()
+      // نجمع رقم المبنى/الشقة مع العنوان الأساسي بسطر واحد فقط عند الإرسال للخادم
+      address: address2 ? (address + ' ' + address2) : address
     };
   }
   function setFieldError(id, on){
