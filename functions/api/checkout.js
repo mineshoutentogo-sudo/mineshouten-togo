@@ -9,6 +9,8 @@ import {
   VALID_REGIONS,
   calcShipping,
   FALLBACK_TEST_SECRET_KEY,
+  verifyTurnstile,
+  FALLBACK_TURNSTILE_SECRET_KEY,
 } from '../_lib/helpers.js';
 
 export async function onRequestPost(context) {
@@ -20,6 +22,14 @@ export async function onRequestPost(context) {
     body = await request.json();
   } catch {
     return new Response(JSON.stringify({ error: '無効なリクエストです' }), { status: 400, headers });
+  }
+
+  // ⚠️ بوت-プロテクション: نتحقق من Turnstile هنا بالسيرفر قبل أي معالجة أخرى
+  // (نفس التحقق المستخدم بنموذج التواصل، الآن يحمي أيضًا نقطة إنشاء الدفع)
+  const remoteIp = request.headers.get('CF-Connecting-IP');
+  const turnstileValid = await verifyTurnstile(body.token, env.TURNSTILE_SECRET_KEY || FALLBACK_TURNSTILE_SECRET_KEY, remoteIp);
+  if (!turnstileValid) {
+    return new Response(JSON.stringify({ error: 'ボット防止の確認に失敗しました。ページを再読み込みしてもう一度お試しください。' }), { status: 403, headers });
   }
 
   const items = Array.isArray(body.items) ? body.items : [];

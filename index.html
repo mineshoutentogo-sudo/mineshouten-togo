@@ -302,6 +302,28 @@ section.block{padding:78px 0}
 .cart-overlay{position:fixed;inset:0;background:rgba(20,30,33,.45);z-index:80;opacity:0;visibility:hidden;
   transition:opacity .3s,visibility .3s}
 .cart-overlay.open{opacity:1;visibility:visible}
+
+/* ===== 決済完了モーダル ===== */
+.thanks-overlay{position:fixed;inset:0;z-index:200;background:rgba(20,30,33,.55);
+  display:flex;align-items:center;justify-content:center;padding:20px;
+  opacity:0;visibility:hidden;transition:opacity .35s,visibility .35s}
+.thanks-overlay.open{opacity:1;visibility:visible}
+.thanks-modal{position:relative;width:100%;max-width:420px;background:var(--paper-2);border-radius:20px;
+  padding:40px 30px 32px;text-align:center;box-shadow:0 30px 70px rgba(20,30,33,.35);
+  transform:translateY(14px) scale(.97);transition:transform .35s cubic-bezier(.22,.61,.36,1)}
+.thanks-overlay.open .thanks-modal{transform:translateY(0) scale(1)}
+.thanks-close{position:absolute;top:14px;right:14px;width:34px;height:34px;border-radius:50%;border:0;
+  background:var(--paper-deep);color:var(--muted);font-size:14px;cursor:pointer;transition:background .2s,color .2s}
+.thanks-close:hover{background:var(--terra);color:#fff}
+.thanks-ic{width:60px;height:60px;border-radius:50%;background:#eef7f2;color:#2e8b57;
+  display:flex;align-items:center;justify-content:center;margin:0 auto 18px}
+.thanks-kj{font-size:11px;letter-spacing:.28em;color:var(--terra);font-weight:700;margin-bottom:8px}
+.thanks-modal h3{font-family:'Shippori Mincho',serif;font-size:21px;color:var(--ink);margin-bottom:14px;line-height:1.5}
+.thanks-modal p{font-size:13.5px;color:var(--muted);line-height:1.9;margin-bottom:26px}
+.thanks-btn{background:var(--teal-deep);color:#fff;border:0;border-radius:12px;padding:0 32px;height:48px;
+  font-size:14.5px;font-weight:700;cursor:pointer;transition:filter .2s}
+.thanks-btn:hover{filter:brightness(1.12)}
+
 .cart-drawer{position:fixed;top:0;right:0;height:100%;width:min(390px,92vw);z-index:90;
   background:var(--teal-deep);color:#fff;box-shadow:-18px 0 48px rgba(20,30,33,.34);
   padding:26px 24px;overflow-y:auto;transform:translateX(110%);transition:transform .38s cubic-bezier(.22,.61,.36,1);
@@ -476,6 +498,8 @@ section.block{padding:78px 0}
 .submit:hover{transform:translateY(-2px)}
 .submit:disabled{opacity:.5;cursor:not-allowed;transform:none;box-shadow:none}
 .cf-turnstile{margin-top:2px}
+.checkout-verify{margin:4px 0 16px}
+.checkout-verify .sf-lab{display:block;font-size:11.5px;color:rgba(255,255,255,.58);margin-bottom:6px}
 .cform-msg{font-size:13.5px;font-weight:600;display:none}
 .cform-msg.show{display:block}
 .cform-msg.ok{color:#bdeacb}
@@ -995,7 +1019,7 @@ footer{background:var(--ink);color:#cfc8bd;padding:56px 0 28px}
         <textarea id="message" name="message" placeholder="ご希望のカレー・個数・お渡し方法などをご記入ください。" required></textarea>
       </div>
       <!-- ↓ ضع Site Key الخاص بموقعك من لوحة Cloudflare Turnstile (راجع README-komoju.md) -->
-      <div class="cf-turnstile" data-sitekey="0x4AAAAAAEKOKB8Izv7MvHnX" data-callback="onTurnstileOk" data-expired-callback="onTurnstileExpired" data-error-callback="onTurnstileExpired"></div>
+      <div class="cf-turnstile" id="contactTurnstile" data-sitekey="0x4AAAAAAEKOKB8Izv7MvHnX" data-callback="onTurnstileOk" data-expired-callback="onTurnstileExpired" data-error-callback="onTurnstileExpired"></div>
       <button class="submit" type="submit" id="contactSubmit" disabled>送信する</button>
       <p class="cform-msg" id="contactMsg"></p>
     </form>
@@ -1007,6 +1031,20 @@ footer{background:var(--ink);color:#cfc8bd;padding:56px 0 28px}
 
 <!-- ===== UNIFIED CART (curry + sweets) ===== -->
 <div class="cart-overlay" id="cartOverlay"></div>
+
+<!-- ===== 決済完了モーダル（KOMOJUから ?paid=1 で戻ってきた際に表示） ===== -->
+<div class="thanks-overlay" id="thanksOverlay" aria-hidden="true">
+  <div class="thanks-modal" role="dialog" aria-modal="true" aria-labelledby="thanksTitle">
+    <button type="button" class="thanks-close" id="thanksClose" aria-label="閉じる">✕</button>
+    <div class="thanks-ic">
+      <svg width="30" height="30" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.6" stroke-linecap="round" stroke-linejoin="round"><path d="M20 6L9 17l-5-5"/></svg>
+    </div>
+    <div class="thanks-kj">THANK YOU</div>
+    <h3 id="thanksTitle">ご注文ありがとうございます</h3>
+    <p>お支払い手続きが完了いたしました。ご注文内容の確認メールをお送りしておりますので、ご確認くださいませ。商品は、ご入金確認後、随時クール便にて発送いたします。</p>
+    <button type="button" class="thanks-btn" id="thanksOk">閉じる</button>
+  </div>
+</div>
 <aside class="cart-drawer" id="cartDrawer" aria-label="ご注文カート" aria-hidden="true">
   <div class="cd-head">
     <h3>ご注文カート <span class="badge" id="cartCount">0</span></h3>
@@ -1084,6 +1122,12 @@ footer{background:var(--ink);color:#cfc8bd;padding:56px 0 28px}
       <input type="text" id="shipAddress2" placeholder="例）〇〇マンション 101号室" autocomplete="address-line2">
     </label>
   </form>
+
+  <div class="checkout-verify">
+    <span class="sf-lab">ボット防止のための確認</span>
+    <!-- ↓ نفس Site Key المستخدم بنموذج التواصل (موقع الموقع نفسه بلوحة Turnstile) -->
+    <div class="cf-turnstile" id="checkoutTurnstile" data-sitekey="0x4AAAAAAEKOKB8Izv7MvHnX" data-callback="onCheckoutTurnstileOk" data-expired-callback="onCheckoutTurnstileExpired" data-error-callback="onCheckoutTurnstileExpired"></div>
+  </div>
 
   <button id="komojuBtn" class="komoju-btn" type="button" style="display:none">
     <svg width="17" height="17" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"><rect x="3" y="11" width="18" height="11" rx="2"/><path d="M7 11V7a5 5 0 0 1 10 0v4"/></svg>
@@ -1384,6 +1428,12 @@ footer{background:var(--ink);color:#cfc8bd;padding:56px 0 28px}
   var komojuMsg  = document.getElementById('komojuMsg');
   var shipForm   = document.getElementById('shipForm');
   var shipPrefEl = document.getElementById('shipPref');
+
+  // ボット防止確認（お支払いボタンの直前に表示されるTurnstileウィジェット）
+  var checkoutTurnstileOk = false;
+  window.onCheckoutTurnstileOk = function(){ checkoutTurnstileOk = true; };
+  window.onCheckoutTurnstileExpired = function(){ checkoutTurnstileOk = false; };
+
   PREFECTURES.forEach(function(p){
     var opt = document.createElement('option');
     opt.value = p[1]; opt.textContent = p[0];
@@ -1677,11 +1727,17 @@ footer{background:var(--ink);color:#cfc8bd;padding:56px 0 28px}
       komojuMsg.style.display = 'block';
       return;
     }
+    if(!checkoutTurnstileOk || typeof window.turnstile === 'undefined'){
+      komojuMsg.textContent = 'ボット防止の確認が完了していません。少々お待ちいただくか、チェックボックスをご確認ください。';
+      komojuMsg.style.display = 'block';
+      return;
+    }
     komojuBtn.disabled = true;
     komojuMsg.style.display = 'none';
     var payload = {
       items: currentItems().map(function(id){ return { id: id, quantity: cart[id] }; }),
-      customer: shipping
+      customer: shipping,
+      token: window.turnstile.getResponse('checkoutTurnstile')
     };
 
     fetch(KOMOJU_ENDPOINT, {
@@ -1701,6 +1757,8 @@ footer{background:var(--ink);color:#cfc8bd;padding:56px 0 28px}
       komojuBtn.disabled = false;
       komojuMsg.textContent = '決済ページへの移動に失敗しました。お手数ですが、もう一度お試しください。';
       komojuMsg.style.display = 'block';
+      if (typeof window.turnstile !== 'undefined') window.turnstile.reset('checkoutTurnstile'); // نطلب تحقق جديد لو فشلت المحاولة
+      checkoutTurnstileOk = false;
     });
   });
 
@@ -1712,18 +1770,23 @@ footer{background:var(--ink);color:#cfc8bd;padding:56px 0 28px}
   document.getElementById('cartClose').addEventListener('click', closeCart);
   document.addEventListener('keydown', function(e){ if(e.key === 'Escape') closeCart(); });
 
-  // --- Thank-you message after returning from KOMOJU's payment page ---
-  // KOMOJUは支払い完了後、"?paid=1" を付けてこのページに戻します。
+  // --- 決済完了モーダル（KOMOJUから "?paid=1" を付けて戻ってきた際に表示） ---
   // カートの中身はページ遷移でリセットされるため、ここでは簡潔なお礼メッセージのみ表示します。
   (function checkReturnFromKomoju(){
     if(location.search.indexOf('paid=1') === -1) return;
-    var done = document.createElement('div');
-    done.className = 'cart-done';
-    done.style.margin = '18px 0';
-    done.innerHTML = '<span class="dn-ic"><svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.4" stroke-linecap="round" stroke-linejoin="round"><path d="M20 6L9 17l-5-5"/></svg></span>'+
-      '<b>ご注文ありがとうございます</b>お支払い手続きが完了しました。発送につきましては、あらためてご連絡いたします。';
-    var target = document.querySelector('#buy .wrap');
-    if(target) target.insertBefore(done, target.firstChild);
+    var thanksOverlay = document.getElementById('thanksOverlay');
+    var closeThanks = function(){
+      thanksOverlay.classList.remove('open');
+      thanksOverlay.setAttribute('aria-hidden', 'true');
+      document.body.style.overflow = '';
+    };
+    thanksOverlay.classList.add('open');
+    thanksOverlay.removeAttribute('aria-hidden');
+    document.body.style.overflow = 'hidden'; // نمنع سكرول الخلفية أثناء ظهور نافذة الشكر
+    document.getElementById('thanksClose').addEventListener('click', closeThanks);
+    document.getElementById('thanksOk').addEventListener('click', closeThanks);
+    thanksOverlay.addEventListener('click', function(e){ if(e.target === thanksOverlay) closeThanks(); });
+    document.addEventListener('keydown', function(e){ if(e.key === 'Escape') closeThanks(); }, { once: true });
     // remove ?paid=1 from the address bar without reloading
     if(window.history && window.history.replaceState){
       window.history.replaceState({}, document.title, location.pathname + location.hash);
@@ -1822,7 +1885,7 @@ footer{background:var(--ink);color:#cfc8bd;padding:56px 0 28px}
       return;
     }
 
-    var token = window.turnstile.getResponse();
+    var token = window.turnstile.getResponse('contactTurnstile');
     if (!token) {
       showMsg('認証の確認ができませんでした。もう一度お試しください。', false);
       return;
@@ -1850,13 +1913,13 @@ footer{background:var(--ink);color:#cfc8bd;padding:56px 0 28px}
         if (result.ok) {
           showMsg('送信しました。2〜3営業日以内にご返信いたします。', true);
           form.reset();
-          window.turnstile.reset();
+          window.turnstile.reset('contactTurnstile');
           turnstileOk = false;
           submitBtn.textContent = '送信する';
           submitBtn.disabled = true;
         } else {
           showMsg(result.data && result.data.error ? result.data.error : '送信に失敗しました。時間をおいて再度お試しください。', false);
-          window.turnstile.reset();
+          window.turnstile.reset('contactTurnstile');
           turnstileOk = false;
           submitBtn.textContent = '送信する';
           submitBtn.disabled = true;
@@ -1864,7 +1927,7 @@ footer{background:var(--ink);color:#cfc8bd;padding:56px 0 28px}
       })
       .catch(function(){
         showMsg('通信エラーが発生しました。時間をおいて再度お試しください。', false);
-        window.turnstile.reset();
+        window.turnstile.reset('contactTurnstile');
         turnstileOk = false;
         submitBtn.textContent = '送信する';
         submitBtn.disabled = true;
