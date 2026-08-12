@@ -1430,16 +1430,36 @@ footer{background:var(--ink);color:#cfc8bd;padding:56px 0 28px}
   var shipPrefEl = document.getElementById('shipPref');
 
   // ボット防止確認（お支払いボタンの直前に表示されるTurnstileウィジェット）
-  var checkoutTurnstileOk = false;
-  window.onCheckoutTurnstileOk = function(){ checkoutTurnstileOk = true; };
-  window.onCheckoutTurnstileExpired = function(){ checkoutTurnstileOk = false; };
+  var checkoutTurnstileOk    = false;
+  var checkoutTurnstileToken = null;
+  // ⚠️ Turnstileيمرّر التوكن مباشرة كمعامل أول للـ callback — نستخدمه هنا بدل استدعاء
+  // getResponse(id) لاحقًا، لأن الـ id اللي كتبناه بالـ HTML مو نفس "widgetId" الداخلي
+  // اللي تولّده Cloudflare (كان هذا هو سبب تعطّل الزر بصمت بدون أي رسالة خطأ).
+  window.onCheckoutTurnstileOk = function(token){
+    checkoutTurnstileOk = true;
+    checkoutTurnstileToken = token;
+  };
+  window.onCheckoutTurnstileExpired = function(){
+    checkoutTurnstileOk = false;
+    checkoutTurnstileToken = null;
+  };
 
   PREFECTURES.forEach(function(p){
     var opt = document.createElement('option');
-    opt.value = p[1]; opt.textContent = p[0];
+    // ⚠️ القيمة لازم تكون فريدة لكل محافظة (اسم المحافظة نفسه)، مو مفتاح منطقة الشحن (p[1]) —
+    // عدة محافظات تشترك بنفس منطقة الشحن (مثلاً 京都府 و滋賀県 كلاهما "kinki")، فلو استخدمنا
+    // مفتاح المنطقة كقيمة، أي كود يكتب shipPrefEl.value برمجيًا (كتعبئة تلقائية من الرمز
+    // البريدي) بيخلي المتصفح يقفز لأول محافظة تحمل نفس المفتاح بدل المحافظة الصحيحة فعليًا.
+    opt.value = p[0]; opt.textContent = p[0];
     shipPrefEl.appendChild(opt);
   });
   shipPrefEl.addEventListener('change', render);
+
+  // يحوّل اسم المحافظة المختارة إلى مفتاح منطقة الشحن (يُستخدم فقط وقت الحساب/الإرسال)
+  function regionOfPref(prefName){
+    var m = PREFECTURES.find(function(p){ return p[0] === prefName; });
+    return m ? m[1] : '';
+  }
 
   // ===== 郵便番号から住所を自動入力（zipcloud: 総務省統計局のデータを使った無料API、APIキー不要） =====
   var shipPostalEl  = document.getElementById('shipPostal');
@@ -1478,7 +1498,7 @@ footer{background:var(--ink);color:#cfc8bd;padding:56px 0 28px}
           shipAddressEl.dataset.autofilled = '1';
         }
         var match = PREFECTURES.find(function(p){ return p[0] === r.address1; });
-        if (match) { shipPrefEl.value = match[1]; render(); }
+        if (match) { shipPrefEl.value = match[0]; render(); }
         setPostalHint('住所を自動入力しました（続きの番地をご確認ください）', 'ok');
       })
       .catch(function(){
@@ -1541,7 +1561,11 @@ footer{background:var(--ink);color:#cfc8bd;padding:56px 0 28px}
         document.getElementById('shipPostal').value = d.postal || '';
         shipAddressEl.value = d.address || '';
         shipAddressEl.dataset.autofilled = '0'; // بيانات مؤكدة من طلب سابق، لا نعتبرها "تعبئة تلقائية مؤقتة"
-        if (d.pref) { shipPrefEl.value = d.pref; render(); }
+        // d.pref المخزّن هو مفتاح منطقة الشحن (وليس اسم محافظة محدد، لأن عدة محافظات تشترك
+        // بنفس المنطقة)، فنستخرج اسم المحافظة الدقيق من بداية نص العنوان المحفوظ نفسه بدلاً منه
+        var prefFromAddr = d.address && PREFECTURES.find(function(p){ return d.address.indexOf(p[0]) === 0; });
+        if (prefFromAddr) { shipPrefEl.value = prefFromAddr[0]; }
+        render();
         setRecallMsg('前回のご注文情報を呼び出しました。内容をご確認ください。', 'ok');
       })
       .catch(function(){
@@ -1566,7 +1590,7 @@ footer{background:var(--ink);color:#cfc8bd;padding:56px 0 28px}
     return currentItems().reduce(function(s,id){ return s + PRODUCTS[id].weight * cart[id]; }, 0);
   }
   function currentShipping(){
-    var region = shipPrefEl.value;
+    var region = regionOfPref(shipPrefEl.value);
     if(!region) return {fee:null, free:false, size:null, tooHeavy:false, noRegion:true};
     var r = calcShipping(currentWeight(), currentSubtotal(), region);
     r.noRegion = false;
@@ -1689,7 +1713,7 @@ footer{background:var(--ink);color:#cfc8bd;padding:56px 0 28px}
       name:    document.getElementById('shipName').value.trim(),
       phone:   document.getElementById('shipPhone').value.trim(),
       email:   document.getElementById('shipEmail').value.trim(),
-      pref:    shipPrefEl.value,
+      pref:    regionOfPref(shipPrefEl.value),
       postal:  document.getElementById('shipPostal').value.trim(),
       // نجمع رقم المبنى/الشقة مع العنوان الأساسي بسطر واحد فقط عند الإرسال للخادم
       address: address2 ? (address + ' ' + address2) : address
@@ -1737,7 +1761,7 @@ footer{background:var(--ink);color:#cfc8bd;padding:56px 0 28px}
     var payload = {
       items: currentItems().map(function(id){ return { id: id, quantity: cart[id] }; }),
       customer: shipping,
-      token: window.turnstile.getResponse('checkoutTurnstile')
+      token: checkoutTurnstileToken
     };
 
     fetch(KOMOJU_ENDPOINT, {
@@ -1757,8 +1781,10 @@ footer{background:var(--ink);color:#cfc8bd;padding:56px 0 28px}
       komojuBtn.disabled = false;
       komojuMsg.textContent = '決済ページへの移動に失敗しました。お手数ですが、もう一度お試しください。';
       komojuMsg.style.display = 'block';
-      if (typeof window.turnstile !== 'undefined') window.turnstile.reset('checkoutTurnstile'); // نطلب تحقق جديد لو فشلت المحاولة
+      // نطلب تحقق Turnstile جديد لو فشلت المحاولة (توكن سابق يُستهلك مرة وحدة فقط)
+      try { if (typeof window.turnstile !== 'undefined') window.turnstile.reset(document.getElementById('checkoutTurnstile')); } catch(e) {}
       checkoutTurnstileOk = false;
+      checkoutTurnstileToken = null;
     });
   });
 
@@ -1846,16 +1872,19 @@ footer{background:var(--ink);color:#cfc8bd;padding:56px 0 28px}
   if (!form) return;
 
   var turnstileOk = false;
+  var turnstileToken = null;
 
-  // يُستدعى تلقائيًا من ودجت Turnstile (data-callback) عند نجاح التحقق
-  window.onTurnstileOk = function(){
+  // يُستدعى تلقائيًا من ودجت Turnstile (data-callback) عند نجاح التحقق — التوكن يوصل مباشرة كمعامل
+  window.onTurnstileOk = function(token){
     turnstileOk = true;
+    turnstileToken = token;
     submitBtn.disabled = false;
     msgEl.className = 'cform-msg';
   };
   // يُستدعى عند انتهاء صلاحية التحقق أو حدوث خطأ فيه
   window.onTurnstileExpired = function(){
     turnstileOk = false;
+    turnstileToken = null;
     submitBtn.disabled = true;
   };
 
@@ -1885,7 +1914,7 @@ footer{background:var(--ink);color:#cfc8bd;padding:56px 0 28px}
       return;
     }
 
-    var token = window.turnstile.getResponse('contactTurnstile');
+    var token = turnstileToken;
     if (!token) {
       showMsg('認証の確認ができませんでした。もう一度お試しください。', false);
       return;
@@ -1913,22 +1942,25 @@ footer{background:var(--ink);color:#cfc8bd;padding:56px 0 28px}
         if (result.ok) {
           showMsg('送信しました。2〜3営業日以内にご返信いたします。', true);
           form.reset();
-          window.turnstile.reset('contactTurnstile');
+          try { window.turnstile.reset(document.getElementById('contactTurnstile')); } catch(e) {}
           turnstileOk = false;
+          turnstileToken = null;
           submitBtn.textContent = '送信する';
           submitBtn.disabled = true;
         } else {
           showMsg(result.data && result.data.error ? result.data.error : '送信に失敗しました。時間をおいて再度お試しください。', false);
-          window.turnstile.reset('contactTurnstile');
+          try { window.turnstile.reset(document.getElementById('contactTurnstile')); } catch(e) {}
           turnstileOk = false;
+          turnstileToken = null;
           submitBtn.textContent = '送信する';
           submitBtn.disabled = true;
         }
       })
       .catch(function(){
         showMsg('通信エラーが発生しました。時間をおいて再度お試しください。', false);
-        window.turnstile.reset('contactTurnstile');
+        try { window.turnstile.reset(document.getElementById('contactTurnstile')); } catch(e) {}
         turnstileOk = false;
+        turnstileToken = null;
         submitBtn.textContent = '送信する';
         submitBtn.disabled = true;
       });
