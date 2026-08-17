@@ -40,20 +40,21 @@ export const PRODUCTS = {
 
 // ===== 送料計算 =====
 // ⚠️ عند تغيير هذا الجدول، حدّث نفس الجدول في index.html أيضًا (نفس المنطق تمامًا)
-// مصدر البيانات: 峯商店_送料一覧.xlsx（クール便込みの金額）
+// مصدر البيانات: 峯商店送料表_佐川急便.xlsx（出典: 佐川急便(株)川内営業所 田中健太郎様ご提示の運賃表、基点:鹿児島県。クール便込みの金額）
+// ⚠️ 鹿児島県は元データで「南九州」区分（熊本・宮崎と同枠）に含まれるが、九州区分と金額が全帯で同額のため
+// kyushu 1キーに統合済み（元データの D列=南九州 と E列=九州 は全行で同一金額）。
+// ⚠️ 沖縄県: 元データ（佐川急便の運賃表）に沖縄の運賃が一切記載されていない → 対応不可（index.html 側で contact_unavailable キーへマップし、要問い合わせ扱いにする）。
 export const FREE_SHIPPING_THRESHOLD = 11000; // 商品小計がこの金額以上で送料（地域送料＋クール便手数料）が完全無料
 export const SHIPPING_SIZES = [
-  // coolOption: null → ヤマト運輸公式サイトで確認済み：クール宅急便は120サイズ(15kg)超は取り扱い対象外
-  { size: 60,  maxWeight: 2000,  coolOption: 275, rates: { kagoshima: 790,  hokkaido: 2340, tohoku_n: 1760, tohoku_s: 1760, kanto: 1460, niigata_nagano: 1460, hokuriku: 1190, tokai: 1190, kinki: 1060, chugoku: 940,  shikoku: 1060, kyushu: 940,  okinawa: 1320 } },
-  { size: 80,  maxWeight: 5000,  coolOption: 330, rates: { kagoshima: 1090, hokkaido: 2620, tohoku_n: 2050, tohoku_s: 2050, kanto: 1740, niigata_nagano: 1740, hokuriku: 1480, tokai: 1480, kinki: 1350, chugoku: 1230, shikoku: 1350, kyushu: 1230, okinawa: 1940 } },
-  { size: 100, maxWeight: 10000, coolOption: 440, rates: { kagoshima: 1410, hokkaido: 2930, tohoku_n: 2360, tohoku_s: 2360, kanto: 2050, niigata_nagano: 2050, hokuriku: 1790, tokai: 1790, kinki: 1650, chugoku: 1530, shikoku: 1650, kyushu: 1530, okinawa: 2580 } },
-  { size: 120, maxWeight: 15000, coolOption: 715, rates: { kagoshima: 1730, hokkaido: 3580, tohoku_n: 2940, tohoku_s: 2940, kanto: 2610, niigata_nagano: 2610, hokuriku: 2310, tokai: 2310, kinki: 2170, chugoku: 2040, shikoku: 2170, kyushu: 2040, okinawa: 3230 } },
-  { size: 140, maxWeight: 20000, coolOption: null, rates: { kagoshima: 2090, hokkaido: 4310, tohoku_n: 3620, tohoku_s: 3620, kanto: 3250, niigata_nagano: 3250, hokuriku: 2930, tokai: 2930, kinki: 2780, chugoku: 2630, shikoku: 2780, kyushu: 2630, okinawa: 3900 } },
-  { size: 160, maxWeight: 25000, coolOption: null, rates: { kagoshima: 2410, hokkaido: 4690, tohoku_n: 4010, tohoku_s: 4010, kanto: 3630, niigata_nagano: 3630, hokuriku: 3320, tokai: 3320, kinki: 3160, chugoku: 3020, shikoku: 3160, kyushu: 3020, okinawa: 4550 } },
-  { size: 180, maxWeight: 30000, coolOption: null, rates: { kagoshima: 3030, hokkaido: 7860, tohoku_n: 6650, tohoku_s: 6650, kanto: 5220, niigata_nagano: 5220, hokuriku: 4900, tokai: 4900, kinki: 4480, chugoku: 3680, shikoku: 4480, kyushu: 3680, okinawa: 6970 } },
+  // 元データに存在する重量帯は20kg（140サイズ）まで。それを超える重量は下のループの末尾フォールバックで tooHeavy 扱いになる。
+  { size: 60,  maxWeight: 1000,  coolOption: 250, rates: { kyushu: 450,  shikoku: 530,  chugoku: 530,  kinki: 530,  hokuriku: 560,  tokai: 560,  niigata_nagano: 610,  kanto: 610,  tohoku_s: 710,  tohoku_n: 710,  hokkaido: 800  } },
+  { size: 60,  maxWeight: 2000,  coolOption: 250, rates: { kyushu: 620,  shikoku: 700,  chugoku: 700,  kinki: 700,  hokuriku: 730,  tokai: 730,  niigata_nagano: 750,  kanto: 780,  tohoku_s: 880,  tohoku_n: 880,  hokkaido: 970  } },
+  { size: 80,  maxWeight: 5000,  coolOption: 300, rates: { kyushu: 760,  shikoku: 890,  chugoku: 890,  kinki: 890,  hokuriku: 960,  tokai: 960,  niigata_nagano: 1000, kanto: 1080, tohoku_s: 1320, tohoku_n: 1320, hokkaido: 1560 } },
+  { size: 100, maxWeight: 10000, coolOption: 400, rates: { kyushu: 1000, shikoku: 1170, chugoku: 1170, kinki: 1170, hokuriku: 1310, tokai: 1310, niigata_nagano: 1400, kanto: 1550, tohoku_s: 2000, tohoku_n: 2050, hokkaido: 2480 } },
+  { size: 140, maxWeight: 20000, coolOption: 800, rates: { kyushu: 1550, shikoku: 1880, chugoku: 1880, kinki: 1880, hokuriku: 2080, tokai: 2120, niigata_nagano: 2300, kanto: 2600, tohoku_s: 2890, tohoku_n: 2890, hokkaido: 3370 } },
 ];
 // 都道府県 → 地域キー（有効な値の一覧としても使用）
-export const VALID_REGIONS = ['kagoshima','hokkaido','tohoku_n','tohoku_s','kanto','niigata_nagano','hokuriku','tokai','kinki','chugoku','shikoku','kyushu','okinawa'];
+export const VALID_REGIONS = ['hokkaido','tohoku_n','tohoku_s','kanto','niigata_nagano','hokuriku','tokai','kinki','chugoku','shikoku','kyushu'];
 
 // --- 電話番号を数字だけに正規化（KVのキーとして使用。表記ゆれ「090-1234-5678」「09012345678」を統一） ---
 export function normalizePhone(phone) {
