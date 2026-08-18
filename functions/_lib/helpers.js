@@ -40,21 +40,23 @@ export const PRODUCTS = {
 
 // ===== 送料計算 =====
 // ⚠️ عند تغيير هذا الجدول، حدّث نفس الجدول في index.html أيضًا (نفس المنطق تمامًا)
-// مصدر البيانات: 峯商店送料表_佐川急便.xlsx（出典: 佐川急便(株)川内営業所 田中健太郎様ご提示の運賃表、基点:鹿児島県。クール便込みの金額）
+// مصدر البيانات: 峯商店送料表.xlsx（出典: 佐川急便(株)川内営業所 田中健太郎様ご提示の運賃表、基点:鹿児島県。クール便込みの金額）
 // ⚠️ 鹿児島県は元データで「南九州」区分（熊本・宮崎と同枠）に含まれるが、九州区分と金額が全帯で同額のため
 // kyushu 1キーに統合済み（元データの D列=南九州 と E列=九州 は全行で同一金額）。
-// ⚠️ 沖縄県: 元データ（佐川急便の運賃表）に沖縄の運賃が一切記載されていない → 対応不可（index.html 側で contact_unavailable キーへマップし、要問い合わせ扱いにする）。
+// ⚠️ 沖縄県: 本体運賃とクール付加料金が他地域と異なる専用の金額体系（元データ Q〜S列）のため、
+// okinawaFee に「本体運賃＋沖縄専用クール付加料金」の合計（S列）をそのまま格納し、calcShipping 側で
+// 通常の rates[region] + coolOption とは別ルートで計算する。
 export const FREE_SHIPPING_THRESHOLD = 11000; // 商品小計がこの金額以上で送料（地域送料＋クール便手数料）が完全無料
 export const SHIPPING_SIZES = [
   // 元データに存在する重量帯は20kg（140サイズ）まで。それを超える重量は下のループの末尾フォールバックで tooHeavy 扱いになる。
-  { size: 60,  maxWeight: 1000,  coolOption: 250, rates: { kyushu: 450,  shikoku: 530,  chugoku: 530,  kinki: 530,  hokuriku: 560,  tokai: 560,  niigata_nagano: 610,  kanto: 610,  tohoku_s: 710,  tohoku_n: 710,  hokkaido: 800  } },
-  { size: 60,  maxWeight: 2000,  coolOption: 250, rates: { kyushu: 620,  shikoku: 700,  chugoku: 700,  kinki: 700,  hokuriku: 730,  tokai: 730,  niigata_nagano: 750,  kanto: 780,  tohoku_s: 880,  tohoku_n: 880,  hokkaido: 970  } },
-  { size: 80,  maxWeight: 5000,  coolOption: 300, rates: { kyushu: 760,  shikoku: 890,  chugoku: 890,  kinki: 890,  hokuriku: 960,  tokai: 960,  niigata_nagano: 1000, kanto: 1080, tohoku_s: 1320, tohoku_n: 1320, hokkaido: 1560 } },
-  { size: 100, maxWeight: 10000, coolOption: 400, rates: { kyushu: 1000, shikoku: 1170, chugoku: 1170, kinki: 1170, hokuriku: 1310, tokai: 1310, niigata_nagano: 1400, kanto: 1550, tohoku_s: 2000, tohoku_n: 2050, hokkaido: 2480 } },
-  { size: 140, maxWeight: 20000, coolOption: 800, rates: { kyushu: 1550, shikoku: 1880, chugoku: 1880, kinki: 1880, hokuriku: 2080, tokai: 2120, niigata_nagano: 2300, kanto: 2600, tohoku_s: 2890, tohoku_n: 2890, hokkaido: 3370 } },
+  { size: 60,  maxWeight: 1000,  coolOption: 250, okinawaFee: 1914, rates: { kyushu: 450,  shikoku: 530,  chugoku: 530,  kinki: 530,  hokuriku: 560,  tokai: 560,  niigata_nagano: 610,  kanto: 610,  tohoku_s: 710,  tohoku_n: 710,  hokkaido: 800  } },
+  { size: 60,  maxWeight: 2000,  coolOption: 250, okinawaFee: 1914, rates: { kyushu: 620,  shikoku: 700,  chugoku: 700,  kinki: 700,  hokuriku: 730,  tokai: 730,  niigata_nagano: 750,  kanto: 780,  tohoku_s: 880,  tohoku_n: 880,  hokkaido: 970  } },
+  { size: 80,  maxWeight: 5000,  coolOption: 300, okinawaFee: 2233, rates: { kyushu: 760,  shikoku: 890,  chugoku: 890,  kinki: 890,  hokuriku: 960,  tokai: 960,  niigata_nagano: 1000, kanto: 1080, tohoku_s: 1320, tohoku_n: 1320, hokkaido: 1560 } },
+  { size: 100, maxWeight: 10000, coolOption: 400, okinawaFee: 3201, rates: { kyushu: 1000, shikoku: 1170, chugoku: 1170, kinki: 1170, hokuriku: 1310, tokai: 1310, niigata_nagano: 1400, kanto: 1550, tohoku_s: 2000, tohoku_n: 2050, hokkaido: 2480 } },
+  { size: 140, maxWeight: 20000, coolOption: 800, okinawaFee: 4587, rates: { kyushu: 1550, shikoku: 1880, chugoku: 1880, kinki: 1880, hokuriku: 2080, tokai: 2120, niigata_nagano: 2300, kanto: 2600, tohoku_s: 2890, tohoku_n: 2890, hokkaido: 3370 } },
 ];
 // 都道府県 → 地域キー（有効な値の一覧としても使用）
-export const VALID_REGIONS = ['hokkaido','tohoku_n','tohoku_s','kanto','niigata_nagano','hokuriku','tokai','kinki','chugoku','shikoku','kyushu'];
+export const VALID_REGIONS = ['hokkaido','tohoku_n','tohoku_s','kanto','niigata_nagano','hokuriku','tokai','kinki','chugoku','shikoku','kyushu','okinawa'];
 
 // --- 電話番号を数字だけに正規化（KVのキーとして使用。表記ゆれ「090-1234-5678」「09012345678」を統一） ---
 export function normalizePhone(phone) {
@@ -114,6 +116,7 @@ export function calcShipping(totalWeight, subtotal, regionKey) {
     if (totalWeight <= s.maxWeight) {
       if (s.coolOption == null) return { fee: null, free: false, regionFee: null, coolFee: null, tooHeavy: true };
       if (subtotal >= FREE_SHIPPING_THRESHOLD) return { fee: 0, free: true, regionFee: 0, coolFee: 0, tooHeavy: false };
+      if (regionKey === 'okinawa') return { fee: s.okinawaFee, free: false, regionFee: s.okinawaFee, coolFee: null, tooHeavy: false };
       const regionFee = s.rates[regionKey];
       if (typeof regionFee !== 'number') return { fee: null, free: false, regionFee: null, coolFee: null, tooHeavy: true };
       return { fee: regionFee + s.coolOption, free: false, regionFee, coolFee: s.coolOption, tooHeavy: false };

@@ -83,7 +83,7 @@ export async function onRequestPost(context) {
   const shipping = calcShipping(totalWeight, amount, customer.pref);
   if (shipping.tooHeavy || shipping.fee == null) {
     return new Response(
-      JSON.stringify({ error: '大変申し訳ございません。ご注文内容（合計重量、またはお届け先地域）の都合により、通常のクール便でのお届けができません（クール宅急便でのお取り扱いは20kgまでとなります）。お手数ですが、分割発送や配送方法のご相談も可能ですので、お電話（080-3957-5729）、Instagram DM等よりご連絡くださいませ。' }),
+      JSON.stringify({ error: '大変申し訳ございません。ご注文の合計重量が大きいため、通常のクール便でのお届けができません（クール宅急便でのお取り扱いは20kgまでとなります）。お手数ですが、分割発送のご相談も可能ですので、お電話（080-3957-5729）、Instagram DM等よりご連絡くださいませ。' }),
       { status: 400, headers }
     );
   }

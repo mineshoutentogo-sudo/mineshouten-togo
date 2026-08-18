@@ -449,6 +449,10 @@ section.block{padding:78px 0}
 .ship-form input::placeholder{color:rgba(255,255,255,.35)}
 .ship-form input:focus{outline:none;border-color:#fff;background:rgba(255,255,255,.15)}
 .ship-form input.err{border-color:#ff9e9e}
+.ship-form input[readonly]{background:rgba(255,255,255,.05);border-style:dashed;color:rgba(255,255,255,.75);cursor:default}
+.ship-form input[readonly]::placeholder{color:rgba(255,255,255,.32)}
+.sf-lab-auto{display:flex;align-items:center;gap:5px}
+.sf-lab-auto .ico-lock{flex:none;color:rgba(255,255,255,.5)}
 .ship-form .sf-err{font-size:11.5px;color:#ffb3b3;margin:-6px 0 10px;display:none}
 .postal-hint{display:block;font-size:11px;margin-top:4px;min-height:14px;color:rgba(255,255,255,.55)}
 .postal-hint.ok{color:var(--teal)}
@@ -458,6 +462,7 @@ section.block{padding:78px 0}
 .ship-form select:focus{outline:none;border-color:#fff;background:rgba(255,255,255,.15)}
 .ship-form select.err{border-color:#ff9e9e}
 .ship-form select option{color:#1a1a1a}
+.ship-form select[disabled]{background:rgba(255,255,255,.05);border-style:dashed;color:rgba(255,255,255,.75);cursor:default;opacity:1}
 .cart-total.with-ship{display:grid;gap:6px}
 .cart-total.with-ship .sub-row{display:flex;justify-content:space-between;font-size:12.5px;color:rgba(255,255,255,.65)}
 .cart-total.with-ship .sub-row.free{color:#8fe3ac;font-weight:700}
@@ -789,7 +794,7 @@ footer{background:var(--ink);color:#cfc8bd;padding:56px 0 28px}
     <div class="hero-copy">
       <span class="eyebrow">鹿児島・薩摩川内市</span>
       <h1>今日の「<b>おいしい</b>」が、<br>明日の笑顔になりますように。</h1>
-      <p class="lead">鹿児島・薩摩川内市の小さな古民家で、丁寧に仕込む本格スパイスカレー。化学調味料・保存料を使わず素材に合わせてスパイスを調合し、食卓が豊かになる一皿をご家庭へお届けします。</p>
+      <p class="lead">鹿児島・薩摩川内市の小さな古民家で、丁寧に仕込む本格スパイスカレー。<br>化学調味料・保存料を使わず素材に合わせてスパイスを調合し、食卓が豊かになる一皿をご家庭へお届けします。</p>
       <div class="hero-actions">
         <a class="btn primary" href="#buy">
           <svg width="17" height="17" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"><circle cx="9" cy="21" r="1"/><circle cx="20" cy="21" r="1"/><path d="M1 1h4l2.7 13.4a2 2 0 0 0 2 1.6h9.7a2 2 0 0 0 2-1.6L23 6H6"/></svg>
@@ -824,8 +829,8 @@ footer{background:var(--ink);color:#cfc8bd;padding:56px 0 28px}
     <div class="about-copy">
       <div class="kj">ABOUT ｜ 店について</div>
       <h2>山あいの古民家から、<br>スパイスのある暮らしを。</h2>
-      <p>峯商店は、鹿児島県薩摩川内市の山間にある小さな古民家のお店です。スパイスカレーと、ほっこりおやつをご用意してお待ちしています。</p>
-      <p>旬の食材と厳選したスパイスを使い、ひと皿ずつ丁寧に。お店で好評をいただいているスパイスカレーを、「自宅でも食べたい」というお声にお応えして、冷凍発送でお手元までお届けします。</p>
+      <p>峯商店は、鹿児島県薩摩川内市の山間にある小さな古民家のお店です。<br>スパイスカレーと、ほっこりおやつをご用意してお待ちしています。</p>
+      <p>旬の食材と厳選したスパイスを使い、ひと皿ずつ丁寧に。<br>お店で好評をいただいているスパイスカレーを、「自宅でも食べたい」というお声にお応えして、冷凍発送でお手元までお届けします。</p>
       <div class="about-tags">
         <span class="tag">古民家カフェ</span>
         <span class="tag">スパイスカレー</span>
@@ -1097,12 +1102,12 @@ footer{background:var(--ink);color:#cfc8bd;padding:56px 0 28px}
     <div class="sf-err" id="err-shipEmail">正しいメールアドレスを入力してください。</div>
 
     <label>
-      <span class="sf-lab">都道府県（送料の計算に使用します）</span>
-      <select id="shipPref">
-        <option value="">選択してください</option>
+      <span class="sf-lab sf-lab-auto"><svg class="ico-lock" width="11" height="11" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.4" stroke-linecap="round" stroke-linejoin="round"><rect x="3" y="11" width="18" height="11" rx="2"/><path d="M7 11V7a5 5 0 0 1 10 0v4"/></svg>都道府県（自動選択・送料の計算に使用します）</span>
+      <select id="shipPref" disabled>
+        <option value="">郵便番号を入力すると自動選択されます</option>
       </select>
     </label>
-    <div class="sf-err" id="err-shipPref">都道府県を選択してください。</div>
+    <div class="sf-err" id="err-shipPref">郵便番号を入力し、都道府県が自動選択されることをご確認ください。</div>
 
     <div class="sf-row">
       <label style="flex:0 0 40%">
@@ -1111,15 +1116,21 @@ footer{background:var(--ink);color:#cfc8bd;padding:56px 0 28px}
         <span id="shipPostalHint" class="postal-hint"></span>
       </label>
       <label style="flex:1">
-        <span class="sf-lab">ご住所</span>
-        <input type="text" id="shipAddress" placeholder="鹿児島県薩摩川内市…" autocomplete="address-line1">
+        <span class="sf-lab sf-lab-auto"><svg class="ico-lock" width="11" height="11" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.4" stroke-linecap="round" stroke-linejoin="round"><rect x="3" y="11" width="18" height="11" rx="2"/><path d="M7 11V7a5 5 0 0 1 10 0v4"/></svg>住所（自動入力）</span>
+        <input type="text" id="shipAddress" placeholder="郵便番号を入力すると自動表示されます" autocomplete="address-line1" readonly>
       </label>
     </div>
-    <div class="sf-err" id="err-shipAddress">郵便番号とご住所を入力してください。</div>
+    <div class="sf-err" id="err-shipAddress">郵便番号を入力し、住所が自動表示されることをご確認ください。</div>
+
+    <label>
+      <span class="sf-lab">番地・号</span>
+      <input type="text" id="shipBanchi" placeholder="例）1724" autocomplete="address-line2">
+    </label>
+    <div class="sf-err" id="err-shipBanchi">番地・号を入力してください。</div>
 
     <label>
       <span class="sf-lab">建物名・部屋番号など（任意）</span>
-      <input type="text" id="shipAddress2" placeholder="例）〇〇マンション 101号室" autocomplete="address-line2">
+      <input type="text" id="shipAddress2" placeholder="例）〇〇マンション 101号室" autocomplete="address-line3">
     </label>
   </form>
 
@@ -1288,7 +1299,7 @@ footer{background:var(--ink);color:#cfc8bd;padding:56px 0 28px}
         <tr><th>所在地</th><td>〒895-1102　鹿児島県薩摩川内市東郷町藤川１７２４<br><a href="https://maps.app.goo.gl/xWL1GtYGaHs7KW7Z9?g_st=il" target="_blank" rel="noopener" style="color:var(--teal-deep)">Googleマップで見る</a></td></tr>
         <tr><th>連絡先</th><td>電話：<a href="tel:08039575729" style="color:var(--teal-deep)">080-3957-5729</a>／メール：<a href="mailto:mineshouten.togo@gmail.com" style="color:var(--teal-deep)">mineshouten.togo@gmail.com</a>／Instagram DM（<a href="https://www.instagram.com/mine_shouten.togo/" target="_blank" rel="noopener" style="color:var(--teal-deep)">@mine_shouten.togo</a>）よりご連絡ください</td></tr>
         <tr><th>販売価格</th><td>各商品ページに記載の価格（消費税込）</td></tr>
-        <tr><th>商品代金以外の必要料金</th><td>送料（クール便込み）：¥700〜¥4,170（ご注文の合計重量とお届け先地域により変動）。合計金額¥11,000以上のご注文で送料無料。正確な金額は商品ページ・カートにて自動計算されます。</td></tr>
+        <tr><th>商品代金以外の必要料金</th><td>送料（クール便込み）：¥700〜¥4,587（ご注文の合計重量とお届け先地域により変動。沖縄県宛は運賃が高くなります）。合計金額¥11,000以上のご注文で送料無料。正確な金額は商品ページ・カートにて自動計算されます。</td></tr>
         <tr><th>お支払い方法</th><td>PayPay・コンビニ決済・クレジットカード（KOMOJU決済）</td></tr>
         <tr><th>お支払い時期</th><td>ご注文時（決済完了時）</td></tr>
         <tr><th>商品のお届け時期</th><td>ご入金確認後、7日以内に発送いたします（クール便・冷凍）</td></tr>
@@ -1365,20 +1376,22 @@ footer{background:var(--ink);color:#cfc8bd;padding:56px 0 28px}
 
   // ===== 送料計算 =====
   // ⚠️ عند تغيير هذا الجدول، حدّث نفس الجدول في functions/_lib/helpers.js أيضًا (نفس المنطق تمامًا)
-  // مصدر البيانات: 峯商店送料表_佐川急便.xlsx（出典: 佐川急便(株)川内営業所 田中健太郎様ご提示の運賃表、基点:鹿児島県。クール便込みの金額）
+  // مصدر البيانات: 峯商店送料表.xlsx（出典: 佐川急便(株)川内営業所 田中健太郎様ご提示の運賃表、基点:鹿児島県。クール便込みの金額）
   // ⚠️ 鹿児島県は元データで「南九州」区分（熊本・宮崎と同枠）に含まれるが、九州区分と金額が全帯で同額のため
   // kyushu 1キーに統合済み（元データの D列=南九州 と E列=九州 は全行で同一金額）。
-  // ⚠️ 沖縄県: 元データ（佐川急便の運賃表）に沖縄の運賃が一切記載されていない → 対応不可（下の PREFECTURES で unavailable キーへマップし、要問い合わせ扱いにする）。
+  // ⚠️ 沖縄県: 本体運賃とクール付加料金が他地域と異なる専用の金額体系（元データ Q〜S列）のため、
+  // okinawaFee に「本体運賃＋沖縄専用クール付加料金」の合計（S列）をそのまま格納し、calcShipping 側で
+  // 通常の rates[region] + coolOption とは別ルートで計算する。
   var FREE_SHIPPING_THRESHOLD = 11000; // 商品小計がこの金額以上で送料（地域送料＋クール便手数料）が完全無料
   var SHIPPING_SIZES = [
     // 元データに存在する重量帯は20kg（140サイズ）まで。それを超える重量は下のループの末尾フォールバックで tooHeavy 扱いになる。
-    {size:60,  maxWeight:1000,  coolOption:250, rates:{kyushu:450,  shikoku:530,  chugoku:530,  kinki:530,  hokuriku:560,  tokai:560,  niigata_nagano:610,  kanto:610,  tohoku_s:710,  tohoku_n:710,  hokkaido:800}},
-    {size:60,  maxWeight:2000,  coolOption:250, rates:{kyushu:620,  shikoku:700,  chugoku:700,  kinki:700,  hokuriku:730,  tokai:730,  niigata_nagano:750,  kanto:780,  tohoku_s:880,  tohoku_n:880,  hokkaido:970}},
-    {size:80,  maxWeight:5000,  coolOption:300, rates:{kyushu:760,  shikoku:890,  chugoku:890,  kinki:890,  hokuriku:960,  tokai:960,  niigata_nagano:1000, kanto:1080, tohoku_s:1320, tohoku_n:1320, hokkaido:1560}},
-    {size:100, maxWeight:10000, coolOption:400, rates:{kyushu:1000, shikoku:1170, chugoku:1170, kinki:1170, hokuriku:1310, tokai:1310, niigata_nagano:1400, kanto:1550, tohoku_s:2000, tohoku_n:2050, hokkaido:2480}},
-    {size:140, maxWeight:20000, coolOption:800, rates:{kyushu:1550, shikoku:1880, chugoku:1880, kinki:1880, hokuriku:2080, tokai:2120, niigata_nagano:2300, kanto:2600, tohoku_s:2890, tohoku_n:2890, hokkaido:3370}}
+    {size:60,  maxWeight:1000,  coolOption:250, okinawaFee:1914, rates:{kyushu:450,  shikoku:530,  chugoku:530,  kinki:530,  hokuriku:560,  tokai:560,  niigata_nagano:610,  kanto:610,  tohoku_s:710,  tohoku_n:710,  hokkaido:800}},
+    {size:60,  maxWeight:2000,  coolOption:250, okinawaFee:1914, rates:{kyushu:620,  shikoku:700,  chugoku:700,  kinki:700,  hokuriku:730,  tokai:730,  niigata_nagano:750,  kanto:780,  tohoku_s:880,  tohoku_n:880,  hokkaido:970}},
+    {size:80,  maxWeight:5000,  coolOption:300, okinawaFee:2233, rates:{kyushu:760,  shikoku:890,  chugoku:890,  kinki:890,  hokuriku:960,  tokai:960,  niigata_nagano:1000, kanto:1080, tohoku_s:1320, tohoku_n:1320, hokkaido:1560}},
+    {size:100, maxWeight:10000, coolOption:400, okinawaFee:3201, rates:{kyushu:1000, shikoku:1170, chugoku:1170, kinki:1170, hokuriku:1310, tokai:1310, niigata_nagano:1400, kanto:1550, tohoku_s:2000, tohoku_n:2050, hokkaido:2480}},
+    {size:140, maxWeight:20000, coolOption:800, okinawaFee:4587, rates:{kyushu:1550, shikoku:1880, chugoku:1880, kinki:1880, hokuriku:2080, tokai:2120, niigata_nagano:2300, kanto:2600, tohoku_s:2890, tohoku_n:2890, hokkaido:3370}}
   ];
-  // 都道府県 → 地域キー（元データ「峯商店送料表_佐川急便.xlsx」に全都道府県が明記されているため、地理的な推測は不要）
+  // 都道府県 → 地域キー（元データ「峯商店送料表.xlsx」に全都道府県が明記されているため、地理的な推測は不要）
   var PREFECTURES = [
     ['北海道','hokkaido'],
     ['青森県','tohoku_n'],['岩手県','tohoku_n'],['秋田県','tohoku_n'],
@@ -1391,8 +1404,7 @@ footer{background:var(--ink);color:#cfc8bd;padding:56px 0 28px}
     ['鳥取県','chugoku'],['島根県','chugoku'],['岡山県','chugoku'],['広島県','chugoku'],['山口県','chugoku'],
     ['徳島県','shikoku'],['香川県','shikoku'],['愛媛県','shikoku'],['高知県','shikoku'],
     ['福岡県','kyushu'],['佐賀県','kyushu'],['長崎県','kyushu'],['熊本県','kyushu'],['大分県','kyushu'],['宮崎県','kyushu'],['鹿児島県','kyushu'],
-    // ⚠️ 沖縄県: 佐川急便の運賃表に運賃データがないため、通常のクール便対応不可（要問い合わせ）として扱う
-    ['沖縄県','unavailable']
+    ['沖縄県','okinawa']
   ];
 
   function calcShipping(totalWeight, subtotal, regionKey){
@@ -1402,6 +1414,7 @@ footer{background:var(--ink);color:#cfc8bd;padding:56px 0 28px}
         if(s.coolOption == null) return {fee:null, free:false, regionFee:null, coolFee:null, size:s.size, tooHeavy:true};
         var isFree = subtotal >= FREE_SHIPPING_THRESHOLD;
         if(isFree) return {fee:0, free:true, regionFee:0, coolFee:0, size:s.size, tooHeavy:false};
+        if(regionKey === 'okinawa') return {fee:s.okinawaFee, free:false, regionFee:s.okinawaFee, coolFee:null, size:s.size, tooHeavy:false};
         var regionFee = s.rates[regionKey];
         if(regionFee == null) return {fee:null, free:false, regionFee:null, coolFee:null, size:s.size, tooHeavy:true};
         return {fee: regionFee + s.coolOption, free:false, regionFee: regionFee, coolFee: s.coolOption, size: s.size, tooHeavy:false};
@@ -1484,29 +1497,34 @@ footer{background:var(--ink);color:#cfc8bd;padding:56px 0 28px}
         if (seq !== postalLookupSeq) return; // المستخدم عدّل الرقم بعد الطلب، تجاهل هذا الرد
         var r = data && data.results && data.results[0];
         if (data.status !== 200 || !r) {
-          setPostalHint('該当する住所が見つかりませんでした。手動でご入力ください。', 'err');
+          // احتياطي: تعذّر التعرّف التلقائي على هذا الرمز البريدي — نفتح الحقلين استثنائيًا للإدخال/الاختيار اليدوي
+          shipAddressEl.readOnly = false;
+          shipAddressEl.placeholder = '例）鹿児島県薩摩川内市東郷町藤川';
+          shipPrefEl.disabled = false;
+          setPostalHint('該当する住所が見つかりませんでした。お手数ですが、住所欄と都道府県を直接ご入力・選択ください。', 'err');
           return;
         }
         var full = r.address1 + r.address2 + r.address3;
-        // لا نستبدل ما كتبه الزبون يدويًا إذا كان قد أضاف تفاصيل أكثر (رقم مبنى وغيره)
-        if (!shipAddressEl.value || shipAddressEl.dataset.autofilled === '1') {
-          shipAddressEl.value = full;
-          shipAddressEl.dataset.autofilled = '1';
-        }
+        shipAddressEl.value = full;
+        shipAddressEl.readOnly = true; // 自動取得に成功したので再度ロック
         var match = PREFECTURES.find(function(p){ return p[0] === r.address1; });
-        if (match) { shipPrefEl.value = match[0]; render(); }
-        setPostalHint('住所を自動入力しました（続きの番地をご確認ください）', 'ok');
+        if (match) {
+          shipPrefEl.value = match[0];
+          shipPrefEl.disabled = true; // 自動選択に成功したので再度ロック
+        } else {
+          shipPrefEl.disabled = false; // 対応する都道府県が見つからなかった場合は手動選択を許可
+        }
+        render();
+        setPostalHint('住所を自動入力しました。下の「番地・号」欄をご入力ください。', 'ok');
+        document.getElementById('shipBanchi').focus();
       })
       .catch(function(){
         if (seq !== postalLookupSeq) return;
-        setPostalHint('住所の自動取得に失敗しました。手動でご入力ください。', 'err');
+        shipAddressEl.readOnly = false;
+        shipAddressEl.placeholder = '例）鹿児島県薩摩川内市東郷町藤川';
+        shipPrefEl.disabled = false;
+        setPostalHint('住所の自動取得に失敗しました。お手数ですが、住所欄と都道府県を直接ご入力・選択ください。', 'err');
       });
-  });
-
-  // إذا عدّل الزبون العنوان يدويًا بنفسه، نتوقف عن الكتابة فوقه بالمرات القادمة
-  shipAddressEl.addEventListener('input', function(){
-    if (shipAddressEl.dataset.autofilled !== '1') return;
-    shipAddressEl.dataset.autofilled = '0';
   });
 
   // ===== استحضار بيانات الطلب السابق (رقم الهاتف + آخر 4 أرقام من الرمز البريدي) =====
@@ -1555,12 +1573,14 @@ footer{background:var(--ink);color:#cfc8bd;padding:56px 0 28px}
         document.getElementById('shipName').value = d.name || '';
         document.getElementById('shipEmail').value = d.email || '';
         document.getElementById('shipPostal').value = d.postal || '';
-        shipAddressEl.value = d.address || '';
-        shipAddressEl.dataset.autofilled = '0'; // بيانات مؤكدة من طلب سابق، لا نعتبرها "تعبئة تلقائية مؤقتة"
+        shipAddressEl.value = d.address || ''; // نص العنوان الكامل المحفوظ من الطلب السابق (بدون تفكيك)
+        document.getElementById('shipBanchi').value = '';
+        document.getElementById('shipAddress2').value = '';
         // d.pref المخزّن هو مفتاح منطقة الشحن (وليس اسم محافظة محدد، لأن عدة محافظات تشترك
         // بنفس المنطقة)، فنستخرج اسم المحافظة الدقيق من بداية نص العنوان المحفوظ نفسه بدلاً منه
         var prefFromAddr = d.address && PREFECTURES.find(function(p){ return d.address.indexOf(p[0]) === 0; });
-        if (prefFromAddr) { shipPrefEl.value = prefFromAddr[0]; }
+        if (prefFromAddr) { shipPrefEl.value = prefFromAddr[0]; shipPrefEl.disabled = true; }
+        else { shipPrefEl.disabled = false; } // لم نتمكن من استخراج المحافظة من العنوان المحفوظ، نسمح بالاختيار اليدوي
         render();
         setRecallMsg('前回のご注文情報を呼び出しました。内容をご確認ください。', 'ok');
       })
@@ -1634,7 +1654,7 @@ footer{background:var(--ink);color:#cfc8bd;padding:56px 0 28px}
       shippingEl.textContent = '都道府県を選択してください';
       shipRowEl.classList.remove('free');
     } else if(ship.tooHeavy || ship.fee == null){
-      shippingEl.textContent = 'お届け不可（要問い合わせ）';
+      shippingEl.textContent = 'クール便の対応サイズ超過';
       shipRowEl.classList.remove('free');
     } else {
       grand += ship.fee;
@@ -1703,16 +1723,20 @@ footer{background:var(--ink);color:#cfc8bd;padding:56px 0 28px}
 
   // --- shipping form: read + validate ---
   function readShipping(){
-    var address  = document.getElementById('shipAddress').value.trim();
+    var autoAddr = document.getElementById('shipAddress').value.trim();
+    var banchi   = document.getElementById('shipBanchi').value.trim();
     var address2 = document.getElementById('shipAddress2').value.trim();
+    // نجمع: 住所（自動入力） + 番地・号 + 建物名・部屋番号 بسطر واحد فقط عند الإرسال للخادم
+    var parts = [autoAddr, banchi, address2].filter(function(v){ return !!v; });
     return {
-      name:    document.getElementById('shipName').value.trim(),
-      phone:   document.getElementById('shipPhone').value.trim(),
-      email:   document.getElementById('shipEmail').value.trim(),
-      pref:    regionOfPref(shipPrefEl.value),
-      postal:  document.getElementById('shipPostal').value.trim(),
-      // نجمع رقم المبنى/الشقة مع العنوان الأساسي بسطر واحد فقط عند الإرسال للخادم
-      address: address2 ? (address + ' ' + address2) : address
+      name:     document.getElementById('shipName').value.trim(),
+      phone:    document.getElementById('shipPhone').value.trim(),
+      email:    document.getElementById('shipEmail').value.trim(),
+      pref:     regionOfPref(shipPrefEl.value),
+      postal:   document.getElementById('shipPostal').value.trim(),
+      autoAddr: autoAddr,
+      banchi:   banchi,
+      address:  parts.join(' ')
     };
   }
   function setFieldError(id, on){
@@ -1728,7 +1752,8 @@ footer{background:var(--ink);color:#cfc8bd;padding:56px 0 28px}
     var emailOk = /^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(s.email);
     if(!emailOk){ setFieldError('shipEmail', true); ok = false; } else setFieldError('shipEmail', false);
     if(!s.pref){ setFieldError('shipPref', true); ok = false; } else setFieldError('shipPref', false);
-    if(!s.postal || !s.address){ setFieldError('shipAddress', true); ok = false; } else setFieldError('shipAddress', false);
+    if(!s.postal || !s.autoAddr){ setFieldError('shipAddress', true); ok = false; } else setFieldError('shipAddress', false);
+    if(!s.banchi){ setFieldError('shipBanchi', true); ok = false; } else setFieldError('shipBanchi', false);
     return ok;
   }
 
@@ -1743,7 +1768,7 @@ footer{background:var(--ink);color:#cfc8bd;padding:56px 0 28px}
     }
     var ship = currentShipping();
     if(ship.tooHeavy || ship.fee == null){
-      komojuMsg.textContent = '大変申し訳ございません。ご注文内容（合計重量、またはお届け先地域）の都合により、通常のクール便でのお届けができません（クール宅急便でのお取り扱いは20kgまでとなります）。お手数ですが、分割発送や配送方法のご相談も可能ですので、お電話（080-3957-5729）、Instagram DM、またはお問い合わせフォームよりご連絡くださいませ。';
+      komojuMsg.textContent = '大変申し訳ございません。ご注文の合計重量が大きいため、通常のクール便でのお届けができません（クール宅急便でのお取り扱いは20kgまでとなります）。お手数ですが、分割発送のご相談も可能ですので、お電話（080-3957-5729）、Instagram DM、またはお問い合わせフォームよりご連絡くださいませ。';
       komojuMsg.style.display = 'block';
       return;
     }
