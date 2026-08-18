@@ -163,22 +163,91 @@ export function calcShipping(totalWeight, subtotal, regionKey) {
   return { fee: null, free: false, regionFee: null, coolFee: null, tooHeavy: true }; // 30kg超：要問い合わせ
 }
 
-// --- التحقق من توقيع KOMOJU (HMAC-SHA256) للتأكد أن التنبيه فعلًا من KOMOJU ---
-export async function verifyKomojuSignature(rawBody, signatureHeader, secret) {
-  if (!signatureHeader || !secret) return false;
+// --- أدوات HMAC مشتركة (تستخدمها verifyKomojuSignature وجلسات لوحة الإدارة) ---
+async function hmacHex(secret, message) {
   const key = await crypto.subtle.importKey(
     'raw', new TextEncoder().encode(secret),
     { name: 'HMAC', hash: 'SHA-256' }, false, ['sign']
   );
-  const sigBuffer = await crypto.subtle.sign('HMAC', key, new TextEncoder().encode(rawBody));
-  const computed = [...new Uint8Array(sigBuffer)].map(b => b.toString(16).padStart(2, '0')).join('');
-  // مقارنة ثابتة الزمن (constant-time) لمنع هجمات قياس التوقيت (timing attacks)
-  if (computed.length !== signatureHeader.length) return false;
+  const sigBuffer = await crypto.subtle.sign('HMAC', key, new TextEncoder().encode(message));
+  return [...new Uint8Array(sigBuffer)].map((b) => b.toString(16).padStart(2, '0')).join('');
+}
+
+// مقارنة ثابتة الزمن (constant-time) لمنع هجمات قياس التوقيت (timing attacks)
+export function timingSafeEqual(a, b) {
+  if (a.length !== b.length) return false;
   let diff = 0;
-  for (let i = 0; i < computed.length; i++) {
-    diff |= computed.charCodeAt(i) ^ signatureHeader.charCodeAt(i);
-  }
+  for (let i = 0; i < a.length; i++) diff |= a.charCodeAt(i) ^ b.charCodeAt(i);
   return diff === 0;
+}
+
+// --- التحقق من توقيع KOMOJU (HMAC-SHA256) للتأكد أن التنبيه فعلًا من KOMOJU ---
+export async function verifyKomojuSignature(rawBody, signatureHeader, secret) {
+  if (!signatureHeader || !secret) return false;
+  const computed = await hmacHex(secret, rawBody);
+  return timingSafeEqual(computed, signatureHeader);
+}
+
+// ============================================================================
+// لوحة الإدارة (/admin) — جلسة موقّعة بدون تخزين على الخادم (stateless signed cookie)
+// ============================================================================
+const ADMIN_SESSION_COOKIE = 'admin_session';
+const ADMIN_SESSION_DURATION_MS = 12 * 60 * 60 * 1000; // 12 ساعة
+const ADMIN_ATTEMPT_KV_PREFIX = 'admin_fail:';
+const ADMIN_MAX_ATTEMPTS = 5;              // 15 دقيقة لكل عنوان IP
+const ADMIN_ATTEMPT_WINDOW_SEC = 15 * 60;
+
+function getCookie(request, name) {
+  const header = request.headers.get('Cookie') || '';
+  const match = header.match(new RegExp('(?:^|; )' + name + '=([^;]*)'));
+  return match ? decodeURIComponent(match[1]) : null;
+}
+
+// --- ينشئ توكن جلسة موقَّع (expiry.signature) — لا حاجة لتخزينه بقاعدة بيانات ---
+export async function createAdminSession(secret) {
+  const expiry = Date.now() + ADMIN_SESSION_DURATION_MS;
+  const sig = await hmacHex(secret, String(expiry));
+  return `${expiry}.${sig}`;
+}
+
+// --- رأس Set-Cookie الكامل لتوكن الجلسة (HttpOnly+Secure+SameSite=Strict يمنعان القراءة من JS أو مواقع أخرى) ---
+export function adminSessionCookieHeader(token) {
+  const maxAge = Math.floor(ADMIN_SESSION_DURATION_MS / 1000);
+  return `${ADMIN_SESSION_COOKIE}=${token}; HttpOnly; Secure; SameSite=Strict; Path=/; Max-Age=${maxAge}`;
+}
+
+// --- رأس Set-Cookie لإلغاء الجلسة (تسجيل الخروج) ---
+export function adminLogoutCookieHeader() {
+  return `${ADMIN_SESSION_COOKIE}=; HttpOnly; Secure; SameSite=Strict; Path=/; Max-Age=0`;
+}
+
+// --- يتحقق من صلاحية جلسة الإدارة الحالية من الكوكيز المرفقة بالطلب ---
+export async function verifyAdminSession(request, secret) {
+  if (!secret) return false;
+  const token = getCookie(request, ADMIN_SESSION_COOKIE);
+  if (!token) return false;
+  const [expiryStr, sig] = token.split('.');
+  const expiry = Number(expiryStr);
+  if (!expiry || !sig || Date.now() > expiry) return false;
+  const expected = await hmacHex(secret, expiryStr);
+  return timingSafeEqual(sig, expected);
+}
+
+// --- الحد من محاولات تسجيل الدخول الفاشلة (نعيد استخدام CUSTOMERS_KV، نفس أسلوب lookupCustomerRecord) ---
+export async function checkAdminRateLimit(env, ip) {
+  if (!env.CUSTOMERS_KV) return { blocked: false, attempts: 0, key: null };
+  const key = ADMIN_ATTEMPT_KV_PREFIX + (ip || 'unknown');
+  const raw = await env.CUSTOMERS_KV.get(key);
+  const attempts = raw ? parseInt(raw, 10) : 0;
+  return { blocked: attempts >= ADMIN_MAX_ATTEMPTS, attempts, key };
+}
+export async function recordAdminFailure(env, key, attempts) {
+  if (!env.CUSTOMERS_KV || !key) return;
+  await env.CUSTOMERS_KV.put(key, String(attempts + 1), { expirationTtl: ADMIN_ATTEMPT_WINDOW_SEC });
+}
+export async function clearAdminFailures(env, key) {
+  if (!env.CUSTOMERS_KV || !key) return;
+  await env.CUSTOMERS_KV.delete(key);
 }
 
 // --- تنقية النصوص قبل إدراجها في HTML (منع حقن HTML/سكربت من بيانات الزبون) ---
