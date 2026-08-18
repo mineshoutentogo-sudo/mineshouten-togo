@@ -1,9 +1,11 @@
 /**
- * GET /api/admin/orders?q=&from=&to=&pref=&limit=&offset=
+ * GET /api/admin/orders?q=&from=&to=&pref=&shipped=&product=&limit=&offset=
  * قائمة الطلبات مع بحث/فلترة/صفحات (يتطلّب جلسة صالحة).
- *   q:      بحث بالاسم/الهاتف/رقم الطلب
+ *   q:       بحث بالاسم/الهاتف/رقم الطلب
  *   from/to: نطاق تاريخ (YYYY-MM-DD)، شامل الطرفين
- *   pref:   مفتاح منطقة شحن واحد (kanto, kyushu, okinawa ...)
+ *   pref:    مفتاح منطقة شحن واحد (kanto, kyushu, okinawa ...)
+ *   shipped: 'pending' | 'shipped' (فارغ = الكل)
+ *   product: معرّف منتج واحد (set3, set5, chicken, teacake, coffeecake, scone)
  */
 import { verifyAdminSession } from '../../_lib/helpers.js';
 
@@ -23,6 +25,8 @@ export async function onRequestGet(context) {
   const from = (url.searchParams.get('from') || '').trim().slice(0, 10);
   const to = (url.searchParams.get('to') || '').trim().slice(0, 10);
   const pref = (url.searchParams.get('pref') || '').trim().slice(0, 30);
+  const shipped = (url.searchParams.get('shipped') || '').trim().slice(0, 10);
+  const product = (url.searchParams.get('product') || '').trim().slice(0, 30);
   const limit = Math.max(1, Math.min(100, parseInt(url.searchParams.get('limit'), 10) || 20));
   const offset = Math.max(0, parseInt(url.searchParams.get('offset'), 10) || 0);
 
@@ -32,13 +36,15 @@ export async function onRequestGet(context) {
     where.push('(customer_name LIKE ? OR customer_phone LIKE ? OR id LIKE ?)');
     params.push(`%${q}%`, `%${q}%`, `%${q}%`);
   }
-  if (from) { where.push('date(created_at) >= ?'); params.push(from); }
-  if (to)   { where.push('date(created_at) <= ?'); params.push(to); }
-  if (pref) { where.push('customer_pref = ?'); params.push(pref); }
+  if (from)     { where.push('date(created_at) >= ?'); params.push(from); }
+  if (to)       { where.push('date(created_at) <= ?'); params.push(to); }
+  if (pref)     { where.push('customer_pref = ?'); params.push(pref); }
+  if (shipped)  { where.push('shipped_status = ?'); params.push(shipped); }
+  if (product)  { where.push('id IN (SELECT order_id FROM order_items WHERE product_id = ?)'); params.push(product); }
   const whereSql = where.length ? `WHERE ${where.join(' AND ')}` : '';
 
   try {
-    const listSql = `SELECT id, created_at, customer_name, customer_phone, customer_pref, customer_postal, amount, shipping_fee, status
+    const listSql = `SELECT id, created_at, customer_name, customer_phone, customer_pref, customer_postal, amount, shipping_fee, status, shipped_status, tracking_number
                       FROM orders ${whereSql} ORDER BY created_at DESC LIMIT ? OFFSET ?`;
     const countSql = `SELECT COUNT(*) AS total FROM orders ${whereSql}`;
 
