@@ -39,6 +39,7 @@ export async function onRequestPost(context) {
 
   // إعادة بناء السلة والمجموع من الخادم فقط — لا نثق بأي سعر يُرسَل من المتصفح
   const line_items = [];
+  const orderItems = []; // نسخة مخصّصة لتخزين D1 لاحقًا: id/name/price كما احتُسبت هنا فعليًا (سجل تاريخي ثابت)
   let amount = 0;
   let totalWeight = 0;
   const summaryLines = [];
@@ -51,6 +52,7 @@ export async function onRequestPost(context) {
       amount: product.price,
       quantity: qty,
     });
+    orderItems.push({ id: it.id, name: product.name, price: product.price, qty });
     amount += product.price * qty;
     totalWeight += product.weight * qty;
     summaryLines.push(`${product.name} × ${qty}`);
@@ -93,6 +95,7 @@ export async function onRequestPost(context) {
   } else if (shipping.free) {
     summaryLines.push('送料無料（¥11,000以上のご注文）');
   }
+  const subtotal = amount; // 送料を足す前の商品小計（D1保存用）
   amount += shipping.fee;
 
   const returnUrl = new URL(request.url).origin + '/?paid=1';
@@ -120,7 +123,9 @@ export async function onRequestPost(context) {
           customer_address: customer.address,
           customer_email: customer.email,
           shipping_fee: String(shipping.fee),
+          subtotal: String(subtotal),
           order_summary: summaryLines.join('\n'),
+          items_json: JSON.stringify(orderItems), // لِـ /api/webhook: تفكيك سطور الطلب عند الحفظ بقاعدة D1
         },
       }),
     });

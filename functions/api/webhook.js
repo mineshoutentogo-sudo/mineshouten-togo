@@ -4,7 +4,7 @@
  * ⚠️ إن كنت فعّلت Webhook سابقًا من لوحة KOMOJU على الرابط القديم، لازم تحدّثه
  * ليصير: https://mineshouten-togo.pages.dev/api/webhook
  */
-import { verifyKomojuSignature, sendOrderEmail, saveCustomerRecord } from '../_lib/helpers.js';
+import { verifyKomojuSignature, sendOrderEmail, saveCustomerRecord, saveOrderToD1 } from '../_lib/helpers.js';
 
 export async function onRequestPost(context) {
   const { request, env } = context;
@@ -33,6 +33,10 @@ export async function onRequestPost(context) {
         pref: md.customer_pref, postal: md.customer_postal, address: md.customer_address,
       });
     } catch (e) { console.error('saveCustomerRecord failed:', e); }
+
+    // نحفظ سجل الطلب الكامل (رأس الطلب + سطور المنتجات) بقاعدة D1 للأرشفة والتقارير
+    try { await saveOrderToD1(env, payment); }
+    catch (e) { console.error('saveOrderToD1 failed:', e); }
   }
 
   return new Response(JSON.stringify({ received: true }), { status: 200 });

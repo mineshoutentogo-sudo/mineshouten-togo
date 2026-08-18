@@ -85,6 +85,44 @@ export async function saveCustomerRecord(env, customer) {
   await env.CUSTOMERS_KV.put(CUSTOMER_KV_PREFIX + phone, JSON.stringify(record), { expirationTtl: CUSTOMER_TTL_SEC });
 }
 
+// --- 確定した注文を D1（ORDERS_DB）へ保存（/api/webhook から payment.captured/authorized 時に呼び出す） ---
+// ⚠️ D1バインディングが未設定の環境（例: ローカル開発）では何もせず正常終了する（機能を無効化するだけで落とさない）
+// ⚠️ payment.id を主キーにした INSERT ... ON CONFLICT なので、KOMOJUが同じイベントを再送しても重複行にならない
+export async function saveOrderToD1(env, payment) {
+  if (!env.ORDERS_DB) return;
+  const md = payment.metadata || {};
+  const shippingFee = Number(md.shipping_fee || 0);
+  const subtotal = Number(md.subtotal ?? (payment.amount - shippingFee));
+  let items = [];
+  try { items = md.items_json ? JSON.parse(md.items_json) : []; } catch { items = []; }
+
+  await env.ORDERS_DB.prepare(
+    `INSERT INTO orders (id, status, customer_name, customer_phone, customer_email, customer_pref, customer_postal, customer_address, subtotal, shipping_fee, amount, order_summary)
+     VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
+     ON CONFLICT(id) DO UPDATE SET status = excluded.status`
+  ).bind(
+    payment.id,
+    payment.status || 'captured',
+    md.customer_name || '',
+    md.customer_phone || '',
+    md.customer_email || payment.payment_details?.email || '',
+    md.customer_pref || '',
+    md.customer_postal || '',
+    md.customer_address || '',
+    subtotal,
+    shippingFee,
+    payment.amount,
+    md.order_summary || ''
+  ).run();
+
+  if (items.length) {
+    const stmt = env.ORDERS_DB.prepare(
+      `INSERT OR IGNORE INTO order_items (order_id, product_id, product_name, quantity, unit_price) VALUES (?, ?, ?, ?, ?)`
+    );
+    await env.ORDERS_DB.batch(items.map((it) => stmt.bind(payment.id, it.id, it.name, it.qty, it.price)));
+  }
+}
+
 // --- 電話番号＋郵便番号下4桁で呼び出し先情報を照会（総当たり対策のレート制限つき） ---
 export async function lookupCustomerRecord(env, phoneRaw, postal4) {
   if (!env.CUSTOMERS_KV) return { ok: false, reason: 'unavailable' };
