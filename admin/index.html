@@ -610,7 +610,7 @@ table.items-table{width:100%;border-collapse:collapse;font-size:13px}
         + '<td data-label="日時">' + fmtDate(o.created_at) + '</td>'
         + '<td data-label="お客様" class="td-name">' + escapeHtml(o.customer_name || '—') + '</td>'
         + '<td data-label="電話番号">' + escapeHtml(o.customer_phone || '—') + '</td>'
-        + '<td data-label="都道府県">' + regionLabel(o.customer_pref) + '</td>'
+        + '<td data-label="都道府県">' + escapeHtml(regionLabel(o.customer_pref)) + '</td>'
         + '<td data-label="金額" class="td-amount">' + yen(o.amount) + '</td>'
         + '<td data-label="支払い">' + statusBadge(o.status) + '</td>'
         + '<td data-label="発送">' + shippedBadge(o.shipped_status) + '</td>'
@@ -796,7 +796,7 @@ table.items-table{width:100%;border-collapse:collapse;font-size:13px}
   // ===== 分析タブ：チャート描画 =====
   var tooltipEl = document.getElementById('barTooltip');
   function showTooltip(x, y, valueText, labelText){
-    tooltipEl.innerHTML = '<div class="tt-val">' + valueText + '</div><div class="tt-lab">' + labelText + '</div>';
+    tooltipEl.innerHTML = '<div class="tt-val">' + escapeHtml(valueText) + '</div><div class="tt-lab">' + escapeHtml(labelText) + '</div>';
     tooltipEl.style.left = x + 'px';
     tooltipEl.style.top = y + 'px';
     tooltipEl.style.display = 'block';

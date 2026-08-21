@@ -391,6 +391,12 @@ function highlightBox(innerHtml) {
 }
 // ============================================================================
 
+// --- تحديث حالة الطلب فقط (بدون لمس order_items) — يُستخدم لتحديثات authorized→captured اللاحقة ---
+export async function updateOrderStatus(env, paymentId, status) {
+  if (!env.ORDERS_DB) return;
+  await env.ORDERS_DB.prepare(`UPDATE orders SET status = ? WHERE id = ?`).bind(status, paymentId).run();
+}
+
 // --- إرسال بريد رسالة "お問い合わせ" عبر Resend ---
 export async function sendContactEmail(env, c) {
   const rows = [
