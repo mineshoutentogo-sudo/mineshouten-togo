@@ -5,7 +5,7 @@
  * إعدادات CORS — الطلب من نفس الأصل (same-origin) دائمًا.
  */
 import {
-  PRODUCTS,
+  getProducts,
   VALID_REGIONS,
   calcShipping,
   FALLBACK_TEST_SECRET_KEY,
@@ -38,6 +38,8 @@ export async function onRequestPost(context) {
   }
 
   // إعادة بناء السلة والمجموع من الخادم فقط — لا نثق بأي سعر يُرسَل من المتصفح
+  // (getProducts يقرأ السعر الفعلي الحالي من D1، مع رجوع آمن للسعر الثابت إن تعذّر الوصول لها)
+  const PRODUCTS = await getProducts(env);
   const line_items = [];
   const orderItems = []; // نسخة مخصّصة لتخزين D1 لاحقًا: id/name/price كما احتُسبت هنا فعليًا (سجل تاريخي ثابت)
   let amount = 0;

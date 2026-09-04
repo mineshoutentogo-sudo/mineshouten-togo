@@ -200,6 +200,57 @@ table.items-table{width:100%;border-collapse:collapse;font-size:13px}
 .fulfill-save:disabled{opacity:.5}
 .fulfill-msg{font-size:11.5px;margin-top:8px;min-height:14px;color:var(--ok)}
 
+/* ---------- ロゴ ---------- */
+.login-logo{width:64px;height:64px;border-radius:16px;object-fit:cover;margin:0 auto 14px;display:block;box-shadow:0 8px 20px rgba(0,0,0,.18)}
+.adm-brand .logo{width:32px;height:32px;border-radius:9px;object-fit:cover;flex-shrink:0}
+
+/* ---------- ログイン：Turnstile / 2段階認証 ---------- */
+.cf-turnstile{margin-top:14px;display:flex;justify-content:center}
+.totp-step{margin-top:6px}
+.totp-hint{font-size:11.5px;color:var(--muted);margin-bottom:14px;line-height:1.6}
+.totp-input{width:100%;padding:12px 14px;border-radius:11px;border:1.5px solid var(--line);background:var(--paper);
+  font-family:inherit;font-size:22px;letter-spacing:.3em;text-align:center;color:var(--ink)}
+.totp-input:focus{outline:none;border-color:var(--teal);background:#fff}
+.totp-back{margin-top:12px;width:100%;background:none;border:0;color:var(--muted);font-size:12.5px;text-decoration:underline;text-underline-offset:3px}
+.totp-back:hover{color:var(--ink)}
+
+/* ---------- 注文の追加／編集：商品行 ---------- */
+.item-rows{display:flex;flex-direction:column;gap:8px;margin-bottom:10px}
+.item-row{display:flex;gap:8px;align-items:center}
+.item-row select{flex:1;padding:9px 10px;border-radius:9px;border:1px solid var(--line);background:var(--paper-2);font-family:inherit;font-size:13px;color:var(--ink);min-width:0}
+.item-row input[type=number]{width:64px;padding:9px 8px;border-radius:9px;border:1px solid var(--line);background:var(--paper-2);font-family:inherit;font-size:13px;text-align:center}
+.item-row .rm-btn{flex:none;width:30px;height:30px;border-radius:8px;border:1px solid var(--line);background:var(--paper-2);color:var(--warn);font-size:15px;line-height:1}
+.item-row .rm-btn:hover{background:#fbeaea;border-color:var(--warn)}
+.add-row-btn{padding:8px 14px;border-radius:9px;border:1px dashed var(--line);background:var(--paper);color:var(--teal-deep);font-weight:700;font-size:12.5px}
+.add-row-btn:hover{background:var(--paper-deep);border-color:var(--teal)}
+.edit-field{width:100%;padding:9px 11px;border-radius:9px;border:1px solid var(--line);background:var(--paper-2);font-family:inherit;font-size:13.5px;margin-bottom:8px}
+.form-grid-2{display:grid;grid-template-columns:1fr 1fr;gap:10px}
+.badge.manual{background:var(--paper-deep);color:var(--muted)}
+.edited-hint{font-size:11px;color:var(--muted);margin-left:6px}
+.danger-btn{width:100%;padding:10px;border-radius:9px;border:1px solid var(--warn);background:#fff;color:var(--warn);font-weight:700;font-size:12.5px}
+.danger-btn:hover{background:#fbeaea}
+.danger-confirm{display:flex;gap:8px;margin-top:8px}
+.danger-confirm button{flex:1;padding:9px;border-radius:9px;border:0;font-weight:700;font-size:12.5px}
+.danger-confirm .yes{background:var(--warn);color:#fff}
+.danger-confirm .no{background:var(--paper-deep);color:var(--ink)}
+.edit-toggle-btn{padding:8px 16px;border-radius:9px;border:1px solid rgba(255,255,255,.3);background:rgba(255,255,255,.12);color:#fff;font-weight:700;font-size:12px}
+.edit-toggle-btn:hover{background:rgba(255,255,255,.22)}
+
+/* ---------- 設定タブ（価格編集） ---------- */
+.settings-grid{display:flex;flex-direction:column;gap:10px}
+.settings-row{display:flex;align-items:center;justify-content:space-between;gap:14px;background:var(--paper-2);
+  border:1px solid var(--line);border-radius:14px;padding:14px 18px;box-shadow:0 6px 16px rgba(28,30,30,.04)}
+.settings-row .p-name{font-weight:600;font-size:13.5px}
+.settings-row .p-edit{display:flex;align-items:center;gap:8px}
+.settings-row .p-edit input{width:110px;padding:9px 10px;border-radius:9px;border:1px solid var(--line);background:var(--paper);
+  font-family:inherit;font-size:14px;text-align:right}
+.settings-row .p-save{padding:9px 16px;border:0;border-radius:9px;background:var(--teal-deep);color:#fff;font-weight:700;font-size:12.5px}
+.settings-row .p-save:hover{filter:brightness(1.12)}
+.settings-row .p-save:disabled{opacity:.5}
+.settings-row .p-msg{font-size:11px;min-height:14px;color:var(--ok)}
+.settings-note{font-size:12px;color:var(--muted);margin-bottom:16px;line-height:1.7;background:var(--paper-2);
+  border:1px dashed var(--line);border-radius:12px;padding:12px 16px}
+
 @media(max-width:820px){
   .stat-grid{grid-template-columns:repeat(2,1fr)}
   .chart-grid-2{grid-template-columns:1fr}
@@ -209,6 +260,8 @@ table.items-table{width:100%;border-collapse:collapse;font-size:13px}
   .orders-table td{padding:3px 0;white-space:normal}
   .orders-table td::before{content:attr(data-label);display:inline-block;min-width:76px;font-size:11px;color:var(--muted)}
   .hbar-label{flex-basis:88px;font-size:11.5px}
+  .form-grid-2{grid-template-columns:1fr}
+  .settings-row{flex-wrap:wrap}
 }
 @media(max-width:520px){.stat-grid{grid-template-columns:1fr}}
 
@@ -225,17 +278,34 @@ table.items-table{width:100%;border-collapse:collapse;font-size:13px}
 </head>
 <body>
 
+<!-- Cloudflare Turnstile（管理者ログインのボット防止） -->
+<script src="https://challenges.cloudflare.com/turnstile/v0/api.js" async defer></script>
+
 <!-- ===== ログイン画面 ===== -->
 <div id="loginView">
   <div class="login-card">
+    <img class="login-logo" src="/logo.jpeg" alt="峯商店ロゴ">
     <div class="login-mark">峯商店</div>
     <div class="login-sub">CURRY &amp; CAFÉ</div>
     <div class="login-title">注文管理システム</div>
+
+    <!-- ステップ1: パスワード -->
     <form class="login-form" id="loginForm" novalidate>
       <label for="loginPassword">パスワード</label>
       <input type="password" id="loginPassword" autocomplete="current-password" placeholder="••••••••">
+      <div class="cf-turnstile" id="loginTurnstile" data-sitekey="0x4AAAAAAEKOKB8Izv7MvHnX" data-callback="onLoginTurnstileOk" data-expired-callback="onLoginTurnstileExpired" data-error-callback="onLoginTurnstileExpired"></div>
       <button type="submit" class="login-btn" id="loginBtn">ログイン</button>
       <div class="login-err" id="loginErr"></div>
+    </form>
+
+    <!-- ステップ2: 認証アプリのコード（2FAが有効な場合のみ表示） -->
+    <form class="login-form totp-step" id="totpForm" novalidate style="display:none">
+      <label for="totpCode">認証アプリのコード</label>
+      <div class="totp-hint">Google Authenticator・Authy等に登録した6桁のコードを入力してください。</div>
+      <input type="text" id="totpCode" class="totp-input" inputmode="numeric" pattern="[0-9]*" maxlength="6" autocomplete="one-time-code" placeholder="000000">
+      <button type="submit" class="login-btn" id="totpBtn">確認する</button>
+      <div class="login-err" id="totpErr"></div>
+      <button type="button" class="totp-back" id="totpBackBtn">パスワード入力に戻る</button>
     </form>
   </div>
 </div>
@@ -245,6 +315,7 @@ table.items-table{width:100%;border-collapse:collapse;font-size:13px}
   <header class="adm-header">
     <div class="adm-wrap adm-header-inner">
       <div class="adm-brand">
+        <img class="logo" src="/logo.jpeg" alt="峯商店ロゴ">
         <span class="mark">峯商店</span>
         <span class="tag">ORDER MANAGEMENT</span>
       </div>
@@ -284,10 +355,14 @@ table.items-table{width:100%;border-collapse:collapse;font-size:13px}
     <div class="tab-nav">
       <button class="tab-btn active" id="tabBtnOrders" data-tab="orders">注文一覧</button>
       <button class="tab-btn" id="tabBtnAnalytics" data-tab="analytics">分析</button>
+      <button class="tab-btn" id="tabBtnSettings" data-tab="settings">設定</button>
     </div>
 
     <!-- ===== 注文一覧タブ ===== -->
     <div class="tab-pane active" id="paneOrders">
+      <div style="display:flex;justify-content:flex-end;margin-bottom:12px">
+        <button class="f-btn" id="openAddOrderBtn" type="button">+ 注文を追加</button>
+      </div>
       <div class="filter-bar">
         <div class="f-field f-q">
           <label for="fQ">検索</label>
@@ -389,6 +464,14 @@ table.items-table{width:100%;border-collapse:collapse;font-size:13px}
         </div>
       </div>
     </div>
+
+    <!-- ===== 設定タブ（商品価格の編集） ===== -->
+    <div class="tab-pane" id="paneSettings">
+      <div class="settings-note">ここで変更した価格は、保存した瞬間からご注文フォーム（お会計）と商品ページの表示に反映されます。既に完了した注文の金額は変わりません。</div>
+      <div class="settings-grid" id="settingsGrid">
+        <div class="table-loading">読み込み中…</div>
+      </div>
+    </div>
   </main>
 </div>
 
@@ -401,6 +484,7 @@ table.items-table{width:100%;border-collapse:collapse;font-size:13px}
     <div class="modal-head">
       <span class="modal-head-title">注文詳細</span>
       <div class="modal-head-btns no-print">
+        <button class="edit-toggle-btn" id="modalEditToggle" type="button">編集</button>
         <button class="modal-icon-btn" id="modalPrint" aria-label="印刷" title="印刷">
           <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"><polyline points="6 9 6 2 18 2 18 9"/><path d="M6 18H4a2 2 0 0 1-2-2v-5a2 2 0 0 1 2-2h16a2 2 0 0 1 2 2v5a2 2 0 0 1-2 2h-2"/><rect x="6" y="14" width="12" height="8"/></svg>
         </button>
@@ -408,6 +492,19 @@ table.items-table{width:100%;border-collapse:collapse;font-size:13px}
       </div>
     </div>
     <div class="modal-body" id="modalBody"></div>
+  </div>
+</div>
+
+<!-- ===== 注文追加モーダル ===== -->
+<div class="modal-overlay" id="addOrderOverlay">
+  <div class="modal-card">
+    <div class="modal-head">
+      <span class="modal-head-title">注文を追加</span>
+      <div class="modal-head-btns">
+        <button class="modal-icon-btn" id="addOrderClose" aria-label="閉じる">✕</button>
+      </div>
+    </div>
+    <div class="modal-body" id="addOrderBody"></div>
   </div>
 </div>
 
@@ -424,7 +521,7 @@ table.items-table{width:100%;border-collapse:collapse;font-size:13px}
     set3:'季節のおまかせ3種', set5:'季節のおまかせ5種', chicken:'チキンカレー（辛味なし）',
     teacake:'知覧茶バスクチーズケーキ', coffeecake:'黒糖のコーヒーバスクチーズケーキ', scone:'季節のスコーン3個セット'
   };
-  var STATUS_LABELS = { captured:['支払い完了','captured'], authorized:['承認済み','authorized'] };
+  var STATUS_LABELS = { captured:['支払い完了','captured'], authorized:['承認済み','authorized'], manual:['手動登録','manual'] };
 
   function yen(n){ return '¥' + Number(n || 0).toLocaleString('ja-JP'); }
   function regionLabel(key){ return REGION_LABELS[key] || key || '—'; }
@@ -472,13 +569,22 @@ table.items-table{width:100%;border-collapse:collapse;font-size:13px}
     fProductEl.appendChild(opt);
   });
 
-  // ===== ログイン =====
+  // ===== ログイン（パスワード → Turnstile → [任意]認証アプリコード） =====
   var loginView = document.getElementById('loginView');
   var dashboardView = document.getElementById('dashboardView');
   var loginForm = document.getElementById('loginForm');
   var loginPassword = document.getElementById('loginPassword');
   var loginBtn = document.getElementById('loginBtn');
   var loginErr = document.getElementById('loginErr');
+  var totpForm = document.getElementById('totpForm');
+  var totpCode = document.getElementById('totpCode');
+  var totpBtn = document.getElementById('totpBtn');
+  var totpErr = document.getElementById('totpErr');
+  var pendingToken = null;
+
+  var loginTurnstileOk = false, loginTurnstileToken = null;
+  window.onLoginTurnstileOk = function(token){ loginTurnstileOk = true; loginTurnstileToken = token; };
+  window.onLoginTurnstileExpired = function(){ loginTurnstileOk = false; loginTurnstileToken = null; };
 
   function showDashboard(){
     loginView.style.display = 'none';
@@ -486,27 +592,48 @@ table.items-table{width:100%;border-collapse:collapse;font-size:13px}
     loadStats();
     loadOrders();
   }
+  function showPasswordStep(){
+    loginForm.style.display = '';
+    totpForm.style.display = 'none';
+    totpErr.textContent = '';
+    totpCode.value = '';
+    pendingToken = null;
+    loginPassword.focus();
+  }
   function showLogin(){
     dashboardView.style.display = 'none';
     loginView.style.display = 'flex';
-    loginPassword.focus();
+    showPasswordStep();
   }
 
   loginForm.addEventListener('submit', function(e){
     e.preventDefault();
     var password = loginPassword.value;
     if(!password){ loginErr.textContent = 'パスワードを入力してください。'; return; }
+    if(!loginTurnstileOk || typeof window.turnstile === 'undefined'){
+      loginErr.textContent = 'ボット防止の確認が完了していません。少しお待ちください。';
+      return;
+    }
     loginBtn.disabled = true;
     loginErr.textContent = '';
     fetch('/api/admin/login', {
       method: 'POST', headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify({ password: password })
+      body: JSON.stringify({ step: 'password', password: password, token: loginTurnstileToken })
     })
       .then(function(res){ return res.json().then(function(data){ return { ok: res.ok, data: data }; }); })
       .then(function(result){
         loginBtn.disabled = false;
+        try { if (typeof window.turnstile !== 'undefined') window.turnstile.reset(document.getElementById('loginTurnstile')); } catch(e) {}
+        loginTurnstileOk = false; loginTurnstileToken = null;
         if(!result.ok){ loginErr.textContent = result.data.error || 'ログインに失敗しました。'; return; }
         loginPassword.value = '';
+        if(result.data.needsTotp){
+          pendingToken = result.data.pending;
+          loginForm.style.display = 'none';
+          totpForm.style.display = '';
+          totpCode.focus();
+          return;
+        }
         showDashboard();
       })
       .catch(function(){
@@ -514,6 +641,30 @@ table.items-table{width:100%;border-collapse:collapse;font-size:13px}
         loginErr.textContent = '通信エラーが発生しました。時間をおいて再度お試しください。';
       });
   });
+
+  totpForm.addEventListener('submit', function(e){
+    e.preventDefault();
+    var code = totpCode.value.trim();
+    if(!/^\d{6}$/.test(code)){ totpErr.textContent = '6桁のコードを入力してください。'; return; }
+    totpBtn.disabled = true;
+    totpErr.textContent = '';
+    fetch('/api/admin/login', {
+      method: 'POST', headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ step: 'totp', pending: pendingToken, code: code })
+    })
+      .then(function(res){ return res.json().then(function(data){ return { ok: res.ok, data: data }; }); })
+      .then(function(result){
+        totpBtn.disabled = false;
+        if(!result.ok){ totpErr.textContent = result.data.error || '確認に失敗しました。'; return; }
+        showDashboard();
+      })
+      .catch(function(){
+        totpBtn.disabled = false;
+        totpErr.textContent = '通信エラーが発生しました。時間をおいて再度お試しください。';
+      });
+  });
+
+  document.getElementById('totpBackBtn').addEventListener('click', showPasswordStep);
 
   document.getElementById('logoutBtn').addEventListener('click', function(){
     fetch('/api/admin/logout', { method: 'POST' }).finally(showLogin);
@@ -527,14 +678,19 @@ table.items-table{width:100%;border-collapse:collapse;font-size:13px}
 
   // ===== タブ切り替え =====
   var analyticsLoaded = false;
+  var settingsLoaded = false;
   document.getElementById('tabBtnOrders').addEventListener('click', function(){ switchTab('orders'); });
   document.getElementById('tabBtnAnalytics').addEventListener('click', function(){ switchTab('analytics'); });
+  document.getElementById('tabBtnSettings').addEventListener('click', function(){ switchTab('settings'); });
   function switchTab(tab){
     document.getElementById('tabBtnOrders').classList.toggle('active', tab === 'orders');
     document.getElementById('tabBtnAnalytics').classList.toggle('active', tab === 'analytics');
+    document.getElementById('tabBtnSettings').classList.toggle('active', tab === 'settings');
     document.getElementById('paneOrders').classList.toggle('active', tab === 'orders');
     document.getElementById('paneAnalytics').classList.toggle('active', tab === 'analytics');
+    document.getElementById('paneSettings').classList.toggle('active', tab === 'settings');
     if(tab === 'analytics' && !analyticsLoaded){ analyticsLoaded = true; loadAnalytics(); }
+    if(tab === 'settings' && !settingsLoaded){ settingsLoaded = true; loadSettings(); }
   }
 
   // ===== 統計 =====
@@ -664,13 +820,79 @@ table.items-table{width:100%;border-collapse:collapse;font-size:13px}
     loadOrders();
   }
 
+  // ===== 商品カタログのキャッシュ（追加注文モーダル・注文編集で共用） =====
+  var productsCache = null;
+  function loadProductsCache(cb){
+    if(productsCache){ cb(productsCache); return; }
+    fetch('/api/admin/products').then(function(res){
+      if(res.status === 401){ showLogin(); return null; }
+      return res.json();
+    }).then(function(d){
+      if(!d) return;
+      productsCache = d.products || [];
+      cb(productsCache);
+    }).catch(function(){});
+  }
+
+  // ---- 商品の行（商品選択＋数量＋削除）：追加注文モーダルと注文編集で共用 ----
+  function productOptionsHtml(products, selectedId){
+    return products.map(function(p){
+      return '<option value="' + escapeHtml(p.id) + '"' + (p.id === selectedId ? ' selected' : '') + '>' + escapeHtml(p.name) + '（¥' + p.price.toLocaleString('ja-JP') + '）</option>';
+    }).join('');
+  }
+  function itemRowHtml(products, selectedId, qty){
+    return '<div class="item-row">'
+      + '<select class="item-product">' + productOptionsHtml(products, selectedId || (products[0] && products[0].id)) + '</select>'
+      + '<input type="number" class="item-qty" min="1" max="99" value="' + (qty || 1) + '">'
+      + '<button type="button" class="rm-btn" aria-label="この行を削除">✕</button>'
+      + '</div>';
+  }
+  // 行1つだけにリスナーを付ける（コンテナ全体を毎回再走査すると、行追加のたびに
+  // 既存行へリスナーが重複登録され、削除ボタンの二重発火でクラッシュするため注意）
+  function wireItemRow(row, container, onChange){
+    row.querySelector('.rm-btn').addEventListener('click', function(){
+      if(container.querySelectorAll('.item-row').length <= 1) return; // 最低1行は残す
+      row.remove();
+      if(onChange) onChange();
+    });
+    row.querySelector('.item-product').addEventListener('change', function(){ if(onChange) onChange(); });
+    row.querySelector('.item-qty').addEventListener('input', function(){ if(onChange) onChange(); });
+  }
+  function wireItemRows(container, products, onChange){
+    Array.prototype.forEach.call(container.querySelectorAll('.item-row'), function(row){
+      wireItemRow(row, container, onChange);
+    });
+  }
+  function collectItems(container){
+    var items = [];
+    Array.prototype.forEach.call(container.querySelectorAll('.item-row'), function(row){
+      var id = row.querySelector('.item-product').value;
+      var qty = parseInt(row.querySelector('.item-qty').value, 10) || 0;
+      if(id && qty > 0) items.push({ id: id, qty: qty });
+    });
+    return items;
+  }
+  function addItemRow(container, products){
+    var wrap = document.createElement('div');
+    wrap.innerHTML = itemRowHtml(products);
+    var newRow = wrap.firstChild;
+    container.appendChild(newRow);
+    wireItemRow(newRow, container, container._onChange);
+    if(container._onChange) container._onChange();
+  }
+
   // ===== 注文詳細モーダル =====
   var modalOverlay = document.getElementById('modalOverlay');
   var modalBody = document.getElementById('modalBody');
   var currentOrderId = null;
+  var currentOrder = null;
+  var currentItems = null;
+  var isEditMode = false;
 
   function openOrder(id){
     currentOrderId = id;
+    isEditMode = false;
+    document.getElementById('modalEditToggle').textContent = '編集';
     modalOverlay.classList.add('open');
     modalBody.innerHTML = '<div class="table-loading">読み込み中…</div>';
 
@@ -680,13 +902,26 @@ table.items-table{width:100%;border-collapse:collapse;font-size:13px}
     }).then(function(d){
       if(!d) return;
       if(d.error){ modalBody.innerHTML = '<div class="table-empty">' + escapeHtml(d.error) + '</div>'; return; }
-      renderOrderDetail(d.order, d.items);
+      currentOrder = d.order;
+      currentItems = d.items;
+      renderOrderView(currentOrder, currentItems);
     }).catch(function(){
       modalBody.innerHTML = '<div class="table-empty">読み込みに失敗しました。</div>';
     });
   }
 
-  function renderOrderDetail(o, items){
+  document.getElementById('modalEditToggle').addEventListener('click', function(){
+    if(!currentOrder) return;
+    isEditMode = !isEditMode;
+    this.textContent = isEditMode ? '表示に戻る' : '編集';
+    if(isEditMode){
+      loadProductsCache(function(products){ renderOrderEditForm(currentOrder, currentItems, products); });
+    } else {
+      renderOrderView(currentOrder, currentItems);
+    }
+  });
+
+  function renderOrderView(o, items){
     var itemsRows = items.map(function(it){
       return '<tr><td>' + escapeHtml(it.product_name) + '</td><td>' + it.quantity + '</td>'
         + '<td>' + yen(it.unit_price) + '</td><td>' + yen(it.unit_price * it.quantity) + '</td></tr>';
@@ -697,7 +932,8 @@ table.items-table{width:100%;border-collapse:collapse;font-size:13px}
 
     modalBody.innerHTML =
       '<div class="mb-row">' + statusBadge(o.status) + shippedBadge(o.shipped_status) + '<span class="mb-id">ID: ' + escapeHtml(o.id) + '</span></div>'
-      + '<div class="mb-row" style="margin-top:-10px"><span style="font-size:12.5px;color:var(--muted)">' + fmtDate(o.created_at) + '</span></div>'
+      + '<div class="mb-row" style="margin-top:-10px"><span style="font-size:12.5px;color:var(--muted)">' + fmtDate(o.created_at) + '</span>'
+      +   (o.updated_at ? '<span class="edited-hint">（編集済み: ' + fmtDate(o.updated_at) + '）</span>' : '') + '</div>'
 
       + '<div class="mb-section">'
       +   '<h4><svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.4" stroke-linecap="round" stroke-linejoin="round"><path d="M20 21v-2a4 4 0 0 0-4-4H8a4 4 0 0 0-4 4v2"/><circle cx="12" cy="7" r="4"/></svg>お客様情報</h4>'
@@ -738,6 +974,15 @@ table.items-table{width:100%;border-collapse:collapse;font-size:13px}
       +     '<input type="text" id="trackingInput" placeholder="追跡番号（任意）" value="' + escapeHtml(o.tracking_number || '') + '">'
       +     '<button class="fulfill-save" id="fulfillSaveBtn" type="button">保存</button>'
       +     '<div class="fulfill-msg" id="fulfillMsg"></div>'
+      +   '</div>'
+      + '</div>'
+
+      + '<div class="mb-section no-print">'
+      +   '<button class="danger-btn" id="deleteOrderBtn" type="button">この注文を削除する</button>'
+      +   '<div class="danger-confirm" id="deleteConfirmBox" style="display:none">'
+      +     '<span style="flex:2;font-size:12px;color:var(--warn);align-self:center">本当に削除しますか？元に戻せません。</span>'
+      +     '<button type="button" class="yes" id="deleteConfirmYes">削除する</button>'
+      +     '<button type="button" class="no" id="deleteConfirmNo">キャンセル</button>'
       +   '</div>'
       + '</div>';
 
@@ -786,6 +1031,126 @@ table.items-table{width:100%;border-collapse:collapse;font-size:13px}
     });
 
     document.getElementById('sameCustBtn').addEventListener('click', function(){ searchByPhone(o.customer_phone); });
+
+    document.getElementById('deleteOrderBtn').addEventListener('click', function(){
+      document.getElementById('deleteConfirmBox').style.display = 'flex';
+    });
+    document.getElementById('deleteConfirmNo').addEventListener('click', function(){
+      document.getElementById('deleteConfirmBox').style.display = 'none';
+    });
+    document.getElementById('deleteConfirmYes').addEventListener('click', function(){
+      var yesBtn = this;
+      yesBtn.disabled = true;
+      fetch('/api/admin/orders/' + encodeURIComponent(o.id), { method: 'DELETE' })
+        .then(function(res){ return res.json().then(function(data){ return { ok: res.ok, data: data }; }); })
+        .then(function(r){
+          if(!r.ok){ yesBtn.disabled = false; alert(r.data.error || '削除に失敗しました。'); return; }
+          modalOverlay.classList.remove('open');
+          state.offset = 0;
+          loadOrders();
+          loadStats();
+        }).catch(function(){
+          yesBtn.disabled = false;
+          alert('通信エラーが発生しました。');
+        });
+    });
+  }
+
+  // ---- 注文編集フォーム（お客様情報・商品・送料をまとめて編集） ----
+  function renderOrderEditForm(o, items, products){
+    var currentPref = o.customer_pref || '';
+    var rowsHtml = (items && items.length ? items : [{ product_id: products[0] && products[0].id, quantity: 1 }])
+      .map(function(it){ return itemRowHtml(products, it.product_id, it.quantity); }).join('');
+
+    modalBody.innerHTML =
+      '<div class="mb-section">'
+      +   '<h4>お客様情報</h4>'
+      +   '<input type="text" class="edit-field" id="eoName" placeholder="お名前 *" value="' + escapeHtml(o.customer_name || '') + '">'
+      +   '<div class="form-grid-2">'
+      +     '<input type="text" class="edit-field" id="eoPhone" placeholder="電話番号 *" value="' + escapeHtml(o.customer_phone || '') + '">'
+      +     '<input type="email" class="edit-field" id="eoEmail" placeholder="メール" value="' + escapeHtml(o.customer_email || '') + '">'
+      +   '</div>'
+      +   '<div class="form-grid-2">'
+      +     '<select class="edit-field" id="eoPref"><option value="">都道府県を選択</option>'
+      +       Object.keys(REGION_LABELS).map(function(k){ return '<option value="' + k + '"' + (k === currentPref ? ' selected' : '') + '>' + REGION_LABELS[k] + '</option>'; }).join('')
+      +     '</select>'
+      +     '<input type="text" class="edit-field" id="eoPostal" placeholder="郵便番号" value="' + escapeHtml(o.customer_postal || '') + '">'
+      +   '</div>'
+      +   '<input type="text" class="edit-field" id="eoAddress" placeholder="ご住所" value="' + escapeHtml(o.customer_address || '') + '">'
+      + '</div>'
+
+      + '<div class="mb-section">'
+      +   '<h4>商品</h4>'
+      +   '<div class="item-rows" id="eoItemRows">' + rowsHtml + '</div>'
+      +   '<button type="button" class="add-row-btn" id="eoAddRow">+ 商品を追加</button>'
+      + '</div>'
+
+      + '<div class="mb-section">'
+      +   '<h4>送料・合計</h4>'
+      +   '<input type="number" class="edit-field" id="eoShipping" placeholder="送料" min="0" value="' + (o.shipping_fee != null ? o.shipping_fee : '') + '">'
+      +   '<div class="totals-box"><div class="row grand"><span>合計（目安）</span><span id="eoTotal">¥0</span></div></div>'
+      + '</div>'
+
+      + '<button class="fulfill-save" id="eoSubmitBtn" type="button">保存する</button>'
+      + '<div class="fulfill-msg" id="eoMsg"></div>';
+
+    var rowsEl = document.getElementById('eoItemRows');
+    function updateEoTotal(){
+      var its = collectItems(rowsEl);
+      var priceMap = {}; products.forEach(function(p){ priceMap[p.id] = p.price; });
+      var subtotal = its.reduce(function(s, it){ return s + (priceMap[it.id] || 0) * it.qty; }, 0);
+      var shippingVal = document.getElementById('eoShipping').value;
+      var shipping = shippingVal !== '' ? (parseInt(shippingVal, 10) || 0) : 0;
+      document.getElementById('eoTotal').textContent = yen(subtotal + shipping);
+    }
+    rowsEl._onChange = updateEoTotal;
+    wireItemRows(rowsEl, products, updateEoTotal);
+    document.getElementById('eoAddRow').addEventListener('click', function(){ addItemRow(rowsEl, products); });
+    document.getElementById('eoShipping').addEventListener('input', updateEoTotal);
+    updateEoTotal();
+
+    document.getElementById('eoSubmitBtn').addEventListener('click', function(){
+      var btn = this;
+      var msg = document.getElementById('eoMsg');
+      var name = document.getElementById('eoName').value.trim();
+      var phone = document.getElementById('eoPhone').value.trim();
+      if(!name || !phone){ msg.style.color = 'var(--warn)'; msg.textContent = 'お名前と電話番号は必須です。'; return; }
+      var its = collectItems(rowsEl);
+      if(!its.length){ msg.style.color = 'var(--warn)'; msg.textContent = '商品を選択してください。'; return; }
+      var shippingVal = document.getElementById('eoShipping').value;
+
+      btn.disabled = true;
+      msg.style.color = 'var(--ok)';
+      msg.textContent = '保存中…';
+      fetch('/api/admin/orders/' + encodeURIComponent(o.id), {
+        method: 'PATCH', headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          customer: {
+            name: name, phone: phone,
+            email: document.getElementById('eoEmail').value.trim(),
+            pref: document.getElementById('eoPref').value,
+            postal: document.getElementById('eoPostal').value.trim(),
+            address: document.getElementById('eoAddress').value.trim()
+          },
+          items: its,
+          shipping_fee: shippingVal !== '' ? (parseInt(shippingVal, 10) || 0) : undefined
+        })
+      }).then(function(res){ return res.json().then(function(data){ return { ok: res.ok, data: data }; }); })
+        .then(function(r){
+          btn.disabled = false;
+          if(!r.ok){ msg.style.color = 'var(--warn)'; msg.textContent = r.data.error || '保存に失敗しました。'; return; }
+          msg.textContent = '保存しました ✓';
+          openOrder(o.id); // 最新の内容で表示モードに戻す
+          document.getElementById('modalEditToggle').textContent = '編集';
+          isEditMode = false;
+          loadOrders();
+          loadStats();
+        }).catch(function(){
+          btn.disabled = false;
+          msg.style.color = 'var(--warn)';
+          msg.textContent = '通信エラーが発生しました。';
+        });
+    });
   }
 
   document.getElementById('modalClose').addEventListener('click', function(){ modalOverlay.classList.remove('open'); });
@@ -940,6 +1305,173 @@ table.items-table{width:100%;border-collapse:collapse;font-size:13px}
       });
     }).catch(function(){
       document.getElementById('dailyChart').innerHTML = '<div class="chart-empty">読み込みに失敗しました。</div>';
+    });
+  }
+
+  // ===== 設定タブ：商品価格の編集 =====
+  var settingsGrid = document.getElementById('settingsGrid');
+
+  function loadSettings(){
+    settingsGrid.innerHTML = '<div class="table-loading">読み込み中…</div>';
+    fetch('/api/admin/products').then(function(res){
+      if(res.status === 401){ showLogin(); return null; }
+      return res.json();
+    }).then(function(d){
+      if(!d) return;
+      renderSettings(d.products || []);
+    }).catch(function(){
+      settingsGrid.innerHTML = '<div class="table-empty">読み込みに失敗しました。</div>';
+    });
+  }
+
+  function renderSettings(products){
+    if(!products.length){ settingsGrid.innerHTML = '<div class="table-empty">商品がありません。</div>'; return; }
+    settingsGrid.innerHTML = products.map(function(p){
+      return '<div class="settings-row" data-id="' + escapeHtml(p.id) + '">'
+        + '<span class="p-name">' + escapeHtml(p.name) + '</span>'
+        + '<div class="p-edit">'
+        +   '<span>¥</span><input type="number" min="1" max="1000000" step="1" class="p-price" value="' + p.price + '">'
+        +   '<button type="button" class="p-save">保存</button>'
+        + '</div>'
+        + '<span class="p-msg"></span>'
+        + '</div>';
+    }).join('');
+
+    Array.prototype.forEach.call(settingsGrid.querySelectorAll('.settings-row'), function(row){
+      var id = row.getAttribute('data-id');
+      var input = row.querySelector('.p-price');
+      var btn = row.querySelector('.p-save');
+      var msg = row.querySelector('.p-msg');
+      btn.addEventListener('click', function(){
+        var price = parseInt(input.value, 10);
+        if(!price || price <= 0){ msg.style.color = 'var(--warn)'; msg.textContent = '価格を入力してください。'; return; }
+        btn.disabled = true;
+        msg.style.color = 'var(--ok)';
+        msg.textContent = '保存中…';
+        fetch('/api/admin/products', {
+          method: 'PATCH', headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({ id: id, price: price })
+        }).then(function(res){ return res.json().then(function(data){ return { ok: res.ok, data: data }; }); })
+          .then(function(r){
+            btn.disabled = false;
+            if(!r.ok){ msg.style.color = 'var(--warn)'; msg.textContent = r.data.error || '保存に失敗しました。'; return; }
+            msg.textContent = '保存しました ✓';
+          }).catch(function(){
+            btn.disabled = false;
+            msg.style.color = 'var(--warn)';
+            msg.textContent = '通信エラーが発生しました。';
+          });
+      });
+    });
+  }
+
+  // ===== 注文追加モーダル =====
+  var addOrderOverlay = document.getElementById('addOrderOverlay');
+  var addOrderBody = document.getElementById('addOrderBody');
+
+  document.getElementById('openAddOrderBtn').addEventListener('click', openAddOrder);
+  document.getElementById('addOrderClose').addEventListener('click', function(){ addOrderOverlay.classList.remove('open'); });
+  addOrderOverlay.addEventListener('click', function(e){ if(e.target === addOrderOverlay) addOrderOverlay.classList.remove('open'); });
+
+  function openAddOrder(){
+    addOrderOverlay.classList.add('open');
+    addOrderBody.innerHTML = '<div class="table-loading">読み込み中…</div>';
+    loadProductsCache(function(products){
+      if(!products.length){ addOrderBody.innerHTML = '<div class="table-empty">商品カタログの取得に失敗しました。</div>'; return; }
+      renderAddOrderForm(products);
+    });
+  }
+
+  function renderAddOrderForm(products){
+    addOrderBody.innerHTML =
+      '<div class="mb-section">'
+      +   '<h4>お客様情報</h4>'
+      +   '<input type="text" class="edit-field" id="aoName" placeholder="お名前 *">'
+      +   '<div class="form-grid-2">'
+      +     '<input type="text" class="edit-field" id="aoPhone" placeholder="電話番号 *">'
+      +     '<input type="email" class="edit-field" id="aoEmail" placeholder="メール">'
+      +   '</div>'
+      +   '<div class="form-grid-2">'
+      +     '<select class="edit-field" id="aoPref"><option value="">都道府県を選択</option>'
+      +       Object.keys(REGION_LABELS).map(function(k){ return '<option value="' + k + '">' + REGION_LABELS[k] + '</option>'; }).join('')
+      +     '</select>'
+      +     '<input type="text" class="edit-field" id="aoPostal" placeholder="郵便番号">'
+      +   '</div>'
+      +   '<input type="text" class="edit-field" id="aoAddress" placeholder="ご住所">'
+      + '</div>'
+
+      + '<div class="mb-section">'
+      +   '<h4>商品</h4>'
+      +   '<div class="item-rows" id="aoItemRows">' + itemRowHtml(products) + '</div>'
+      +   '<button type="button" class="add-row-btn" id="aoAddRow">+ 商品を追加</button>'
+      + '</div>'
+
+      + '<div class="mb-section">'
+      +   '<h4>送料・合計</h4>'
+      +   '<input type="number" class="edit-field" id="aoShipping" placeholder="送料（空欄=自動計算）" min="0">'
+      +   '<div class="totals-box"><div class="row grand"><span>合計（目安）</span><span id="aoTotal">¥0</span></div></div>'
+      + '</div>'
+
+      + '<button class="fulfill-save" id="aoSubmitBtn" type="button">注文を作成</button>'
+      + '<div class="fulfill-msg" id="aoMsg"></div>';
+
+    var rowsEl = document.getElementById('aoItemRows');
+    function updateAoTotal(){
+      var its = collectItems(rowsEl);
+      var priceMap = {}; products.forEach(function(p){ priceMap[p.id] = p.price; });
+      var subtotal = its.reduce(function(s, it){ return s + (priceMap[it.id] || 0) * it.qty; }, 0);
+      var shippingVal = document.getElementById('aoShipping').value;
+      var shipping = shippingVal !== '' ? (parseInt(shippingVal, 10) || 0) : 0;
+      document.getElementById('aoTotal').textContent = yen(subtotal + shipping);
+    }
+    rowsEl._onChange = updateAoTotal;
+    wireItemRows(rowsEl, products, updateAoTotal);
+    document.getElementById('aoAddRow').addEventListener('click', function(){ addItemRow(rowsEl, products); });
+    document.getElementById('aoShipping').addEventListener('input', updateAoTotal);
+    updateAoTotal();
+
+    document.getElementById('aoSubmitBtn').addEventListener('click', function(){
+      var btn = this;
+      var msg = document.getElementById('aoMsg');
+      var name = document.getElementById('aoName').value.trim();
+      var phone = document.getElementById('aoPhone').value.trim();
+      if(!name || !phone){ msg.style.color = 'var(--warn)'; msg.textContent = 'お名前と電話番号は必須です。'; return; }
+      var its = collectItems(rowsEl);
+      if(!its.length){ msg.style.color = 'var(--warn)'; msg.textContent = '商品を選択してください。'; return; }
+      var shippingVal = document.getElementById('aoShipping').value;
+
+      btn.disabled = true;
+      msg.style.color = 'var(--ok)';
+      msg.textContent = '作成中…';
+      fetch('/api/admin/orders', {
+        method: 'POST', headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          customer: {
+            name: name, phone: phone,
+            email: document.getElementById('aoEmail').value.trim(),
+            pref: document.getElementById('aoPref').value,
+            postal: document.getElementById('aoPostal').value.trim(),
+            address: document.getElementById('aoAddress').value.trim()
+          },
+          items: its,
+          shipping_fee: shippingVal !== '' ? (parseInt(shippingVal, 10) || 0) : undefined
+        })
+      }).then(function(res){ return res.json().then(function(data){ return { ok: res.ok, data: data }; }); })
+        .then(function(r){
+          btn.disabled = false;
+          if(!r.ok){ msg.style.color = 'var(--warn)'; msg.textContent = r.data.error || '作成に失敗しました。'; return; }
+          msg.textContent = '作成しました ✓';
+          setTimeout(function(){
+            addOrderOverlay.classList.remove('open');
+            state.offset = 0;
+            loadOrders();
+            loadStats();
+          }, 500);
+        }).catch(function(){
+          btn.disabled = false;
+          msg.style.color = 'var(--warn)';
+          msg.textContent = '通信エラーが発生しました。';
+        });
     });
   }
 

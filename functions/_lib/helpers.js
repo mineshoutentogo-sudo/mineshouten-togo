@@ -4,7 +4,18 @@
  * Pages Functions كمسار (route) مستقل — هو فقط ملف مشترك يُستورد من الملفات الأخرى.
  *
  * ⚠️ هام: حدّث كتالوج PRODUCTS أدناه ليطابق تمامًا الكتالوج الموجود في index.html
- * (نفس المعرّفات id، ونفس الأسعار) في كل مرة تُغيّر فيها المنتجات أو الأسعار.
+ * (نفس المعرّفات id ونفس الأسماء/الأوزان) كلما أضفت أو حذفت منتجًا.
+ * ⚠️ الأسعار نفسها لم تعد تُقرأ من هنا مباشرة في مسارات الدفع/العرض — استخدم
+ * دائمًا getProducts(env) (تحت) الذي يطبّق فوق هذا الكتالوج أي سعر محفوظ بجدول
+ * product_prices (يُعدَّل من تبويب "設定" بلوحة الإدارة). القيم هنا تبقى فقط
+ * كقيمة احتياطية آمنة إن تعذّر الوصول لقاعدة البيانات.
+ *
+ * ⚠️ التحقق بخطوتين (2FA) لتسجيل دخول لوحة الإدارة: لتفعيله، ولّد سرًا عشوائيًا
+ * بترميز Base32 (مثلاً بأمر `openssl rand -base32 20` من أي طرفية) واحفظه كمتغيّر
+ * بيئة ADMIN_TOTP_SECRET من لوحة Cloudflare Pages (Settings → Environment variables
+ * → Add secret)، ثم أضِفه لتطبيق مصادقة (Google Authenticator، Authy...) عبر خيار
+ * "إدخال المفتاح يدويًا" (لا حاجة لرمز QR — السرّ نفسه كافٍ). بدون هذا المتغيّر،
+ * تسجيل الدخول يعمل بكلمة المرور فقط كما هو الحال اليوم (لا يُقفَل الوصول تلقائيًا).
  */
 
 // ⚠️ مفتاح اختبار مؤقت (sk_test_...) — آمن نسبيًا لأنه للتجربة فقط وليس للمعاملات الحقيقية.
@@ -37,6 +48,29 @@ export const PRODUCTS = {
   coffeecake: { name: '黒糖のコーヒーバスクチーズケーキ', price: 2800, weight: 1700 },
   scone:      { name: '季節のスコーン 3個セット',        price: 900,  weight: 180  },
 };
+
+// --- كتالوج المنتجات الفعلي (سعر ديناميكي من D1 + الباقي ثابت من PRODUCTS أعلاه) ---
+// ⚠️ يُستخدَم هذا حصريًا (وليس PRODUCTS مباشرة) في أي مكان يُحسب فيه سعر فعلي:
+// /api/checkout (الدفع الحقيقي)، /api/products (الموقع الرئيسي)، ولوحة الإدارة.
+// عند أي خلل بقاعدة البيانات (D1 غير مهيّأ، أو الجدول فارغ) يبقى السعر الثابت
+// من PRODUCTS كقيمة احتياطية آمنة — لا يتوقف الدفع أبدًا بسبب هذه الميزة.
+export async function getProducts(env) {
+  const products = {};
+  for (const id of Object.keys(PRODUCTS)) products[id] = { ...PRODUCTS[id] };
+
+  if (!env.ORDERS_DB) return products;
+  try {
+    const { results } = await env.ORDERS_DB.prepare(`SELECT product_id, price FROM product_prices`).all();
+    for (const row of results || []) {
+      if (products[row.product_id] && Number.isFinite(row.price) && row.price > 0) {
+        products[row.product_id].price = row.price;
+      }
+    }
+  } catch (e) {
+    console.error('getProducts: product_prices lookup failed, using static defaults:', e);
+  }
+  return products;
+}
 
 // ===== 送料計算 =====
 // ⚠️ عند تغيير هذا الجدول، حدّث نفس الجدول في index.html أيضًا (نفس المنطق تمامًا)
@@ -173,6 +207,57 @@ async function hmacHex(secret, message) {
   return [...new Uint8Array(sigBuffer)].map((b) => b.toString(16).padStart(2, '0')).join('');
 }
 
+// ============================================================================
+// TOTP (RFC 6238) — رمز التحقق بخطوتين (2FA) لتسجيل دخول لوحة الإدارة، عبر
+// تطبيق مصادقة عادي (Google Authenticator / Authy ...)، بدون أي خدمة خارجية.
+// ============================================================================
+
+// --- فك ترميز Base32 (معيار مفاتيح TOTP) إلى Uint8Array من البايتات الخام ---
+function base32Decode(base32) {
+  const alphabet = 'ABCDEFGHIJKLMNOPQRSTUVWXYZ234567';
+  const clean = String(base32 || '').toUpperCase().replace(/[^A-Z2-7]/g, '');
+  let bits = '';
+  for (const ch of clean) {
+    const idx = alphabet.indexOf(ch);
+    if (idx === -1) continue;
+    bits += idx.toString(2).padStart(5, '0');
+  }
+  const bytes = [];
+  for (let i = 0; i + 8 <= bits.length; i += 8) bytes.push(parseInt(bits.slice(i, i + 8), 2));
+  return new Uint8Array(bytes);
+}
+
+// --- HOTP (RFC 4226): توقيع HMAC-SHA1 لعدّاد الوقت، ثم استخراج 6 أرقام منه ---
+async function hotp(secretBytes, counter) {
+  const counterBuf = new ArrayBuffer(8);
+  const view = new DataView(counterBuf);
+  // JS لا يدعم أرقام 64-بت كاملة بأمان، لكن عدّاد الوقت (خطوات 30 ثانية) لن يبلغ حدود Number.MAX_SAFE_INTEGER فعليًا
+  view.setUint32(4, counter >>> 0);
+  view.setUint32(0, Math.floor(counter / 2 ** 32));
+
+  const key = await crypto.subtle.importKey('raw', secretBytes, { name: 'HMAC', hash: 'SHA-1' }, false, ['sign']);
+  const sig = new Uint8Array(await crypto.subtle.sign('HMAC', key, counterBuf));
+
+  const offset = sig[sig.length - 1] & 0x0f;
+  const binCode = ((sig[offset] & 0x7f) << 24) | ((sig[offset + 1] & 0xff) << 16) | ((sig[offset + 2] & 0xff) << 8) | (sig[offset + 3] & 0xff);
+  return String(binCode % 1_000_000).padStart(6, '0');
+}
+
+// --- يتحقق من رمز TOTP مكوّن من 6 أرقام، بهامش ±1 خطوة (30 ثانية) لفروقات الساعة ---
+export async function verifyTOTP(secretBase32, code, driftSteps = 1) {
+  const cleanCode = String(code || '').trim();
+  if (!/^\d{6}$/.test(cleanCode) || !secretBase32) return false;
+  const secretBytes = base32Decode(secretBase32);
+  if (!secretBytes.length) return false;
+
+  const step = Math.floor(Date.now() / 1000 / 30);
+  for (let drift = -driftSteps; drift <= driftSteps; drift++) {
+    const expected = await hotp(secretBytes, step + drift);
+    if (timingSafeEqual(expected, cleanCode)) return true;
+  }
+  return false;
+}
+
 // مقارنة ثابتة الزمن (constant-time) لمنع هجمات قياس التوقيت (timing attacks)
 export function timingSafeEqual(a, b) {
   if (a.length !== b.length) return false;
@@ -196,6 +281,8 @@ const ADMIN_SESSION_DURATION_MS = 12 * 60 * 60 * 1000; // 12 ساعة
 const ADMIN_ATTEMPT_KV_PREFIX = 'admin_fail:';
 const ADMIN_MAX_ATTEMPTS = 5;              // 15 دقيقة لكل عنوان IP
 const ADMIN_ATTEMPT_WINDOW_SEC = 15 * 60;
+// حدّ منفصل لمحاولات رمز TOTP (خطوة ثانية) عن حدّ محاولات كلمة المرور
+export const ADMIN_TOTP_ATTEMPT_KV_PREFIX = 'admin_totp_fail:';
 
 function getCookie(request, name) {
   const header = request.headers.get('Cookie') || '';
@@ -233,10 +320,34 @@ export async function verifyAdminSession(request, secret) {
   return timingSafeEqual(sig, expected);
 }
 
+// ============================================================================
+// خطوة التحقق بخطوتين (2FA) — توكن مؤقّت "تم التحقق من كلمة المرور، بانتظار
+// رمز TOTP" بدون أي تخزين على الخادم (نفس أسلوب createAdminSession تمامًا)،
+// لكن بتوقيع رسالة مختلفة تمامًا (بادئة PENDING2FA:) حتى يستحيل استخدام هذا
+// التوكن المؤقّت كجلسة إدارة حقيقية حتى لو تسرّب.
+// ============================================================================
+const PENDING_2FA_DURATION_MS = 5 * 60 * 1000; // 5 دقائق فقط
+
+export async function createPendingTwoFactorToken(secret) {
+  const expiry = Date.now() + PENDING_2FA_DURATION_MS;
+  const sig = await hmacHex(secret, 'PENDING2FA:' + expiry);
+  return `${expiry}.${sig}`;
+}
+
+export async function verifyPendingTwoFactorToken(token, secret) {
+  if (!secret || !token) return false;
+  const [expiryStr, sig] = String(token).split('.');
+  const expiry = Number(expiryStr);
+  if (!expiry || !sig || Date.now() > expiry) return false;
+  const expected = await hmacHex(secret, 'PENDING2FA:' + expiryStr);
+  return timingSafeEqual(sig, expected);
+}
+
 // --- الحد من محاولات تسجيل الدخول الفاشلة (نعيد استخدام CUSTOMERS_KV، نفس أسلوب lookupCustomerRecord) ---
-export async function checkAdminRateLimit(env, ip) {
+// prefix اختياري: يسمح بحدّ منفصل لكل خطوة (كلمة المرور مقابل رمز TOTP) بنفس المنطق تمامًا
+export async function checkAdminRateLimit(env, ip, prefix) {
   if (!env.CUSTOMERS_KV) return { blocked: false, attempts: 0, key: null };
-  const key = ADMIN_ATTEMPT_KV_PREFIX + (ip || 'unknown');
+  const key = (prefix || ADMIN_ATTEMPT_KV_PREFIX) + (ip || 'unknown');
   const raw = await env.CUSTOMERS_KV.get(key);
   const attempts = raw ? parseInt(raw, 10) : 0;
   return { blocked: attempts >= ADMIN_MAX_ATTEMPTS, attempts, key };

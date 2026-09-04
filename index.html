@@ -884,9 +884,9 @@ footer{background:var(--ink);color:#cfc8bd;padding:56px 0 28px}
       <p>季節のおまかせセットと、辛いものが苦手な方にもうれしい人気のチキンカレーをご用意しました。</p>
     </div>
     <div class="flavors">
-      <div class="fcard"><div class="chip">3</div><h3>季節のおまかせ<br>3種</h3><div class="price-tag">¥2,700</div><span class="en">Seasonal Set of 3</span></div>
-      <div class="fcard"><div class="chip">5</div><h3>季節のおまかせ<br>5種</h3><div class="price-tag">¥4,500</div><span class="en">Seasonal Set of 5</span></div>
-      <div class="fcard has-badge"><div class="chip">鶏</div><h3>人気・チキンカレー<br>（辛味なし）</h3><p class="note"><svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.6" stroke-linecap="round" stroke-linejoin="round"><path d="M12 2l8 4v6c0 5-3.5 8.5-8 10-4.5-1.5-8-5-8-10V6l8-4z"/><path d="M9 12l2 2 4-4"/></svg>お子様やスパイス初心者も安心の一皿</p><div class="price-tag">¥900</div><span class="en">Chicken Curry (Mild)</span></div>
+      <div class="fcard"><div class="chip">3</div><h3>季節のおまかせ<br>3種</h3><div class="price-tag" data-price-id="set3">¥2,700</div><span class="en">Seasonal Set of 3</span></div>
+      <div class="fcard"><div class="chip">5</div><h3>季節のおまかせ<br>5種</h3><div class="price-tag" data-price-id="set5">¥4,500</div><span class="en">Seasonal Set of 5</span></div>
+      <div class="fcard has-badge"><div class="chip">鶏</div><h3>人気・チキンカレー<br>（辛味なし）</h3><p class="note"><svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.6" stroke-linecap="round" stroke-linejoin="round"><path d="M12 2l8 4v6c0 5-3.5 8.5-8 10-4.5-1.5-8-5-8-10V6l8-4z"/><path d="M9 12l2 2 4-4"/></svg>お子様やスパイス初心者も安心の一皿</p><div class="price-tag" data-price-id="chicken">¥900</div><span class="en">Chicken Curry (Mild)</span></div>
     </div>
   </div>
 </section>
@@ -1368,8 +1368,11 @@ footer{background:var(--ink);color:#cfc8bd;padding:56px 0 28px}
 (function(){
   var yen = function(n){ return '¥' + n.toLocaleString('ja-JP'); };
 
-  // One shared catalogue for both sections
-  // ⚠️ عند تغيير هذا الكتالوج، حدّث نفس القائمة في komoju-worker.js أيضًا
+  // One shared catalogue for both sections（固定値。id/name/weightが変わる時だけ手で更新する）
+  // ⚠️ 名前・IDを追加/削除する場合は functions/_lib/helpers.js の PRODUCTS も同じ内容に更新すること。
+  // ⚠️ 価格そのものはここでは固定値（フォールバック用）— ページ読み込み時に /api/products から
+  // 実際の現在価格を取得して上書きする（下の fetch）。管理画面の「設定」タブで価格を変えても
+  // ここを手で直す必要はない。
   var PRODUCTS = {
     set3:       {name:'季節のおまかせ3種', price:2700, weight:750},
     set5:       {name:'季節のおまかせ5種', price:4500, weight:1250},
@@ -1380,6 +1383,23 @@ footer{background:var(--ink);color:#cfc8bd;padding:56px 0 28px}
   };
   var cart = {};
   Object.keys(PRODUCTS).forEach(function(id){ cart[id] = 0; });
+
+  // ===== 動的な価格反映（管理画面の「設定」タブで変更した価格を自動反映） =====
+  // ⚠️ 失敗しても何もしない（表示中の固定価格のまま）— お会計処理を絶対に止めないため。
+  // お会計の実際の金額はいずれにせよ /api/checkout がサーバー側で確定するので安全。
+  fetch('/api/products').then(function(res){ return res.ok ? res.json() : null; }).then(function(d){
+    if(!d || !Array.isArray(d.products)) return;
+    d.products.forEach(function(p){
+      if(!PRODUCTS[p.id] || !(p.price > 0)) return;
+      PRODUCTS[p.id].price = p.price;
+      var priceText = yen(p.price);
+      var prEl = document.querySelector('.item-card[data-id="' + p.id + '"] .pr');
+      if(prEl && prEl.childNodes[0]) prEl.childNodes[0].nodeValue = priceText;
+      var tagEl = document.querySelector('.price-tag[data-price-id="' + p.id + '"]');
+      if(tagEl) tagEl.textContent = priceText;
+    });
+    render();
+  }).catch(function(){});
 
   // ===== 送料計算 =====
   // ⚠️ عند تغيير هذا الجدول، حدّث نفس الجدول في functions/_lib/helpers.js أيضًا (نفس المنطق تمامًا)
