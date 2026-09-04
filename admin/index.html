@@ -591,6 +591,7 @@ table.items-table{width:100%;border-collapse:collapse;font-size:13px}
     dashboardView.style.display = 'block';
     loadStats();
     loadOrders();
+    startDashboardPolling();
   }
   function showPasswordStep(){
     loginForm.style.display = '';
@@ -604,6 +605,7 @@ table.items-table{width:100%;border-collapse:collapse;font-size:13px}
     dashboardView.style.display = 'none';
     loginView.style.display = 'flex';
     showPasswordStep();
+    stopDashboardPolling();
   }
 
   loginForm.addEventListener('submit', function(e){
@@ -692,6 +694,52 @@ table.items-table{width:100%;border-collapse:collapse;font-size:13px}
     if(tab === 'analytics' && !analyticsLoaded){ analyticsLoaded = true; loadAnalytics(); }
     if(tab === 'settings' && !settingsLoaded){ settingsLoaded = true; loadSettings(); }
   }
+
+  // ===== 自動更新（ライブ更新）：画面を開いたままでも新しい注文・金額を反映 =====
+  var STATS_POLL_MS = 20000;      // 統計カード：常に20秒ごと
+  var ORDERS_POLL_MS = 20000;     // 注文一覧：表示中かつ操作の邪魔にならない時だけ20秒ごと
+  var ANALYTICS_POLL_MS = 60000;  // 分析タブ：表示中のみ60秒ごと（重い集計クエリのため間隔を長めに）
+  var statsPollTimer = null;
+  var ordersPollTimer = null;
+  var analyticsPollTimer = null;
+
+  // 詳細/追加モーダルを開いている最中や、検索欄に入力中は一覧を裏で差し替えない
+  // （操作中に行が消えたり検索結果が意図せず変わるのを防ぐ）
+  function canAutoRefreshOrders(){
+    if(modalOverlay.classList.contains('open') || addOrderOverlay.classList.contains('open')) return false;
+    if(document.activeElement === document.getElementById('fQ')) return false;
+    return true;
+  }
+
+  function startDashboardPolling(){
+    stopDashboardPolling();
+    statsPollTimer = setInterval(function(){
+      if(document.visibilityState === 'visible') loadStats();
+    }, STATS_POLL_MS);
+    ordersPollTimer = setInterval(function(){
+      if(document.visibilityState === 'visible' && document.getElementById('paneOrders').classList.contains('active') && canAutoRefreshOrders()){
+        loadOrders();
+      }
+    }, ORDERS_POLL_MS);
+    analyticsPollTimer = setInterval(function(){
+      if(document.visibilityState === 'visible' && document.getElementById('paneAnalytics').classList.contains('active')){
+        loadAnalytics();
+      }
+    }, ANALYTICS_POLL_MS);
+  }
+  function stopDashboardPolling(){
+    clearInterval(statsPollTimer);
+    clearInterval(ordersPollTimer);
+    clearInterval(analyticsPollTimer);
+    statsPollTimer = ordersPollTimer = analyticsPollTimer = null;
+  }
+  // タブをバックグラウンドに置いて長時間放置→戻ってきた瞬間に一度だけ最新化
+  document.addEventListener('visibilitychange', function(){
+    if(document.visibilityState !== 'visible' || dashboardView.style.display === 'none') return;
+    loadStats();
+    if(document.getElementById('paneOrders').classList.contains('active') && canAutoRefreshOrders()) loadOrders();
+    if(document.getElementById('paneAnalytics').classList.contains('active')) loadAnalytics();
+  });
 
   // ===== 統計 =====
   function loadStats(){
