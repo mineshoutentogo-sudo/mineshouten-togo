@@ -15,7 +15,7 @@
  * كالمعتاد (fail-open) — نفس فلسفة getProducts في helpers.js: هذه ميزة إضافية،
  * لا يجوز أبدًا أن تُسقط الموقع الحقيقي بسبب خلل بها هي نفسها.
  */
-import { escapeHtml } from './_lib/helpers.js';
+import { escapeHtml, readMaintenanceSettings, computeMaintenanceState } from './_lib/helpers.js';
 
 export async function onRequest(context) {
   const { request, env, next } = context;
@@ -27,21 +27,18 @@ export async function onRequest(context) {
   if (path !== '/' && /\.[a-zA-Z0-9]+$/.test(path)) return next(); // ملفات ثابتة (لها امتداد)
   if (!env.ORDERS_DB) return next();
 
-  let settings;
+  let state;
   try {
-    const { results } = await env.ORDERS_DB.prepare(
-      `SELECT key, value FROM site_settings WHERE key IN ('maintenance_mode','maintenance_message','maintenance_eta')`
-    ).all();
-    settings = {};
-    for (const row of results || []) settings[row.key] = row.value;
+    const map = await readMaintenanceSettings(env);
+    state = computeMaintenanceState(map);
   } catch (e) {
     console.error('maintenance middleware: site_settings lookup failed, serving site normally:', e);
     return next();
   }
 
-  if (settings.maintenance_mode !== '1') return next();
+  if (!state.effective) return next();
 
-  return new Response(renderMaintenancePage(settings.maintenance_message, settings.maintenance_eta), {
+  return new Response(renderMaintenancePage(state.message, state.eta), {
     status: 503,
     headers: {
       'Content-Type': 'text/html; charset=UTF-8',

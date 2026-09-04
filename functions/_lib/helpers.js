@@ -72,6 +72,57 @@ export async function getProducts(env) {
   return products;
 }
 
+// ============================================================================
+// وضع الصيانة — منطق مشترك بين functions/_middleware.js (يقرر فعليًا هل يُغلق
+// الموقع العام) وfunctions/api/admin/settings.js (يعرضه بلوحة الإدارة)، حتى
+// يحسب الطرفان دائمًا نفس النتيجة بالضبط لنفس البيانات، بلا تكرار للمنطق.
+// ============================================================================
+export const MAINTENANCE_KEYS = [
+  'maintenance_mode', 'maintenance_message', 'maintenance_eta',
+  'maintenance_schedule_start', 'maintenance_schedule_end',
+];
+
+// يقرأ كل مفاتيح الصيانة من site_settings دفعة واحدة. يرجّع {} إن تعذّر الوصول
+// لـD1 (fail-open: القراءة الفارغة تعني "لا صيانة" في computeMaintenanceState).
+export async function readMaintenanceSettings(env) {
+  if (!env.ORDERS_DB) return {};
+  const { results } = await env.ORDERS_DB.prepare(
+    `SELECT key, value FROM site_settings WHERE key IN (${MAINTENANCE_KEYS.map(() => '?').join(',')})`
+  ).bind(...MAINTENANCE_KEYS).all();
+  const map = {};
+  for (const row of results || []) map[row.key] = row.value;
+  return map;
+}
+
+// يحسب: هل الموقع مغلق الآن فعليًا؟ (تفعيل يدوي مباشر، أو داخل نافذة زمنية محجوزة
+// مسبقًا من تبويب "予約設定"). scheduleStatus مفيد فقط لعرض النص المناسب بلوحة
+// الإدارة (none = لا حجز، upcoming = لم يبدأ بعد، active = جارٍ الآن، past = انتهى).
+export function computeMaintenanceState(map, now = Date.now()) {
+  const manual = map.maintenance_mode === '1';
+  const scheduleStart = map.maintenance_schedule_start || '';
+  const scheduleEnd = map.maintenance_schedule_end || '';
+  const start = scheduleStart ? Date.parse(scheduleStart) : NaN;
+  const end = scheduleEnd ? Date.parse(scheduleEnd) : NaN;
+  const hasSchedule = Number.isFinite(start) && Number.isFinite(end);
+
+  let scheduleStatus = 'none';
+  if (hasSchedule) {
+    if (now < start) scheduleStatus = 'upcoming';
+    else if (now < end) scheduleStatus = 'active';
+    else scheduleStatus = 'past';
+  }
+
+  return {
+    manual,
+    effective: manual || scheduleStatus === 'active',
+    scheduleStatus,
+    scheduleStart,
+    scheduleEnd,
+    message: map.maintenance_message || '',
+    eta: map.maintenance_eta || '',
+  };
+}
+
 // ===== 送料計算 =====
 // ⚠️ عند تغيير هذا الجدول، حدّث نفس الجدول في index.html أيضًا (نفس المنطق تمامًا)
 // مصدر البيانات: 峯商店送料表.xlsx（出典: 佐川急便(株)川内営業所 田中健太郎様ご提示の運賃表、基点:鹿児島県。クール便込みの金額）
