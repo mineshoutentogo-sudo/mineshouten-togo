@@ -17,7 +17,7 @@ export async function onRequestGet(context) {
 
   try {
     const [totals, today, pending] = await Promise.all([
-      env.ORDERS_DB.prepare(`SELECT COUNT(*) AS order_count, COALESCE(SUM(amount),0) AS total_revenue FROM orders`).first(),
+      env.ORDERS_DB.prepare(`SELECT COUNT(*) AS order_count, COALESCE(SUM(amount),0) AS total_revenue, COALESCE(SUM(subtotal),0) AS total_subtotal FROM orders`).first(),
       env.ORDERS_DB.prepare(`SELECT COUNT(*) AS today_count, COALESCE(SUM(amount),0) AS today_revenue FROM orders WHERE date(created_at) = date('now')`).first(),
       env.ORDERS_DB.prepare(`SELECT COUNT(*) AS pending_count FROM orders WHERE shipped_status = 'pending'`).first(),
     ]);
@@ -25,6 +25,7 @@ export async function onRequestGet(context) {
     return new Response(JSON.stringify({
       orderCount: totals?.order_count || 0,
       totalRevenue: totals?.total_revenue || 0,
+      totalSubtotal: totals?.total_subtotal || 0,
       todayCount: today?.today_count || 0,
       todayRevenue: today?.today_revenue || 0,
       pendingCount: pending?.pending_count || 0,

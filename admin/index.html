@@ -569,6 +569,11 @@ table.items-table{width:100%;border-collapse:collapse;font-size:13px}
         <div class="stat-label">未発送の注文</div>
         <div class="stat-value" id="statPending">—</div>
       </div>
+      <div class="stat-card" id="statTaxCard" style="display:none">
+        <div class="stat-ic"><svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"><line x1="12" y1="1" x2="12" y2="23"/><path d="M17 5H9.5a3.5 3.5 0 0 0 0 7h5a3.5 3.5 0 0 1 0 7H6"/></svg></div>
+        <div class="stat-label">総消費税（目安）</div>
+        <div class="stat-value" id="statTax">—</div>
+      </div>
     </div>
 
     <!-- タブ（縦型サイドバー） -->
@@ -1301,6 +1306,7 @@ table.items-table{width:100%;border-collapse:collapse;font-size:13px}
   });
 
   // ===== 統計 =====
+  var lastTotalSubtotal = 0;
   function loadStats(){
     fetch('/api/admin/stats').then(function(res){
       if(res.status === 401){ showLogin(); return null; }
@@ -1311,7 +1317,18 @@ table.items-table{width:100%;border-collapse:collapse;font-size:13px}
       document.getElementById('statOrders').innerHTML = d.orderCount.toLocaleString('ja-JP') + '<small> 件</small>';
       document.getElementById('statToday').innerHTML = d.todayCount.toLocaleString('ja-JP') + '<small> 件 (' + yen(d.todayRevenue) + ')</small>';
       document.getElementById('statPending').innerHTML = d.pendingCount.toLocaleString('ja-JP') + '<small> 件</small>';
+      lastTotalSubtotal = d.totalSubtotal || 0;
+      updateTaxStatCard();
     }).catch(function(){});
+  }
+
+  // 総消費税カード（統計カード群の5枚目）：消費税表示がONの時だけ表示し、
+  // 全注文の商品小計合計（lastTotalSubtotal）に現在の税率を掛けた目安額を出す。
+  function updateTaxStatCard(){
+    var card = document.getElementById('statTaxCard');
+    if(!taxSettings.tax_enabled){ card.style.display = 'none'; return; }
+    card.style.display = '';
+    document.getElementById('statTax').textContent = yen(Math.round(lastTotalSubtotal * (taxSettings.tax_rate / 100)));
   }
 
   // ===== 注文一覧 + フィルター + ページング =====
@@ -2456,6 +2473,7 @@ table.items-table{width:100%;border-collapse:collapse;font-size:13px}
       if(!d || d.error) return;
       taxSettings = d;
       applyTaxSettingsToForm();
+      updateTaxStatCard();
     }).catch(function(){});
   }
 
@@ -2483,6 +2501,7 @@ table.items-table{width:100%;border-collapse:collapse;font-size:13px}
         if(!r.ok){ taxSettingsMsg.style.color = 'var(--warn)'; taxSettingsMsg.textContent = r.data.error || '保存に失敗しました。'; return; }
         taxSettings = r.data;
         applyTaxSettingsToForm();
+        updateTaxStatCard();
         taxSettingsMsg.style.color = 'var(--ok)';
         taxSettingsMsg.textContent = '保存しました ✓';
       }).catch(function(){
