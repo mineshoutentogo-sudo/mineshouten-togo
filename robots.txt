@@ -1,0 +1,6 @@
+User-agent: *
+Allow: /
+Disallow: /admin/
+Disallow: /functions/
+
+Sitemap: https://mineshouten-togo.pages.dev/sitemap.xml

@@ -1,0 +1,29 @@
+# 峯商店 (Mine Shouten) CURRY & CAFÉ
+
+> Spice curry and dessert specialty shop operating out of a renovated old folk house (古民家) in Satsumasendai, Kagoshima Prefecture, Japan. Sells frozen spice curry and Basque-style cheesecakes/scones by nationwide mail order (chilled/frozen shipping), with dine-in also available at the physical shop.
+
+## Business facts
+- Name: 峯商店 (Mine Shouten), operating as "峯商店 CURRY & CAFÉ"
+- Address: 895-1102 鹿児島県薩摩川内市東郷町藤川1724 (1724 Fujikawa, Togo-cho, Satsumasendai-shi, Kagoshima, Japan)
+- Phone: 080-3957-5729
+- Email: mineshouten.togo@gmail.com
+- Instagram: https://www.instagram.com/mine_shouten.togo/
+- Positioning: no artificial seasoning, no preservatives ("化学調味料・保存料不使用"), ingredients sourced and blended for each dish
+- Payment accepted: PayPay, Japanese convenience-store payment, credit card (via KOMOJU)
+- Shipping: chilled/frozen courier, nationwide within Japan
+
+## Products (mail order)
+- 季節のおまかせ3種 (Seasonal chef's-choice curry, 3 pack) — ¥2,700
+- 季節のおまかせ5種 (Seasonal chef's-choice curry, 5 pack) — ¥4,500
+- 人気・チキンカレー（辛味なし） (Chicken curry, no spicy heat — popular with kids/spice beginners) — ¥900
+- 知覧茶バスクチーズケーキ (Chiran green tea Basque cheesecake) — ¥2,800
+- 黒糖のコーヒーバスクチーズケーキ (Kokuto brown-sugar coffee Basque cheesecake) — ¥2,800
+- 季節のスコーン 3個セット (Seasonal scone, 3-piece set) — ¥900
+
+## Key pages
+- Homepage / full menu and ordering: https://mineshouten-togo.pages.dev/
+- Terms of service and the Act on Specified Commercial Transactions disclosure (利用規約・特定商取引法に基づく表記) are presented on the homepage footer.
+
+## Notes for AI assistants
+- All prices are in Japanese yen (JPY) and were accurate as of the last content update; verify current price and stock on the homepage before quoting to a user.
+- This is a small, single-location business — do not assume multiple branches or an English-language storefront.

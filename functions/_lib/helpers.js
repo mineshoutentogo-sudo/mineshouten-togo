@@ -1,0 +1,773 @@
+/**
+ * أدوات مشتركة بين كل نقاط النهاية (functions/api/*.js)
+ * ⚠️ اسم الملف يبدأ بـ "_" داخل مجلد يبدأ بـ "_lib" حتى لا يتعامل معه Cloudflare
+ * Pages Functions كمسار (route) مستقل — هو فقط ملف مشترك يُستورد من الملفات الأخرى.
+ *
+ * ⚠️ هام: حدّث كتالوج PRODUCTS أدناه ليطابق تمامًا الكتالوج الموجود في index.html
+ * (نفس المعرّفات id ونفس الأسماء/الأوزان) كلما أضفت أو حذفت منتجًا.
+ * ⚠️ الأسعار نفسها لم تعد تُقرأ من هنا مباشرة في مسارات الدفع/العرض — استخدم
+ * دائمًا getProducts(env) (تحت) الذي يطبّق فوق هذا الكتالوج أي سعر محفوظ بجدول
+ * product_prices (يُعدَّل من تبويب "設定" بلوحة الإدارة). القيم هنا تبقى فقط
+ * كقيمة احتياطية آمنة إن تعذّر الوصول لقاعدة البيانات.
+ *
+ * ⚠️ التحقق بخطوتين (2FA) لتسجيل دخول لوحة الإدارة: لتفعيله، ولّد سرًا عشوائيًا
+ * بترميز Base32 (مثلاً بأمر `openssl rand -base32 20` من أي طرفية) واحفظه كمتغيّر
+ * بيئة ADMIN_TOTP_SECRET من لوحة Cloudflare Pages (Settings → Environment variables
+ * → Add secret)، ثم أضِفه لتطبيق مصادقة (Google Authenticator، Authy...) عبر خيار
+ * "إدخال المفتاح يدويًا" (لا حاجة لرمز QR — السرّ نفسه كافٍ). بدون هذا المتغيّر،
+ * تسجيل الدخول يعمل بكلمة المرور فقط كما هو الحال اليوم (لا يُقفَل الوصول تلقائيًا).
+ */
+
+// ⚠️ مفتاح اختبار مؤقت (sk_test_...) — آمن نسبيًا لأنه للتجربة فقط وليس للمعاملات الحقيقية.
+// يُفضَّل دائمًا وضع المفتاح كمتغيّر بيئة مشفّر من لوحة Pages
+// (Settings → Environment variables → Add secret → KOMOJU_SECRET_KEY)
+// بدل تركه هنا كنص ظاهر في الكود — خصوصًا عند الانتقال لاحقًا لمفتاح sk_live_ الحقيقي.
+export const FALLBACK_TEST_SECRET_KEY = 'sk_test_95o06oc1qlv1z5jel2zakxnt';
+
+// ⚠️ عدّل هذا لبريدك الإلكتروني الحقيقي — هنا ستصلك إشعارات كل طلب جديد
+export const OWNER_EMAIL = 'mineshouten.togo@gmail.com';
+
+// ⚠️ Secret Key الخاص بـ Cloudflare Turnstile (نموذج CONTACT).
+// ⚠️ لا تضع المفتاح الحقيقي هنا أبدًا — أي كود يُرفع لـ GitHub يبقى مرئيًا
+// بتاريخ الـ commits للأبد حتى لو حُذف لاحقًا. أضفه حصريًا من لوحة Cloudflare
+// Pages: Settings → Environment variables → أضف TURNSTILE_SECRET_KEY كـ Secret.
+export const FALLBACK_TURNSTILE_SECRET_KEY = '';
+
+// ⚠️ مفتاح API الخاص بـ Resend (لإرسال بريد الطلبات وبريد نموذج التواصل).
+// ⚠️ لا تضع مفتاح Resend الحقيقي هنا أبدًا — GitHub يكتشف مفاتيح Resend تلقائيًا
+// (Secret Scanning) ويطلب إلغاءها فورًا بمجرد رفعها لأي مستودع. المفتاح الحقيقي
+// يُضاف حصريًا من لوحة Cloudflare Pages: Settings → Environment variables →
+// أضف RESEND_API_KEY كـ Secret. بدونه، إرسال البريد لن يعمل.
+export const FALLBACK_RESEND_API_KEY = '';
+
+export const PRODUCTS = {
+  set3:       { name: '季節のおまかせ3種',              price: 2700, weight: 750  },
+  set5:       { name: '季節のおまかせ5種',              price: 4500, weight: 1250 },
+  chicken:    { name: 'チキンカレー（辛味なし）',        price: 900,  weight: 250  },
+  teacake:    { name: '知覧茶バスクチーズケーキ',        price: 2800, weight: 1700 },
+  coffeecake: { name: '黒糖のコーヒーバスクチーズケーキ', price: 2800, weight: 1700 },
+  scone:      { name: '季節のスコーン 3個セット',        price: 900,  weight: 180  },
+};
+
+// --- كتالوج المنتجات الفعلي (سعر ديناميكي من D1 + الباقي ثابت من PRODUCTS أعلاه) ---
+// ⚠️ يُستخدَم هذا حصريًا (وليس PRODUCTS مباشرة) في أي مكان يُحسب فيه سعر فعلي:
+// /api/checkout (الدفع الحقيقي)، /api/products (الموقع الرئيسي)، ولوحة الإدارة.
+// عند أي خلل بقاعدة البيانات (D1 غير مهيّأ، أو الجدول فارغ) يبقى السعر الثابت
+// من PRODUCTS كقيمة احتياطية آمنة — لا يتوقف الدفع أبدًا بسبب هذه الميزة.
+export async function getProducts(env) {
+  const products = {};
+  for (const id of Object.keys(PRODUCTS)) products[id] = { ...PRODUCTS[id] };
+
+  if (!env.ORDERS_DB) return products;
+  try {
+    const { results } = await env.ORDERS_DB.prepare(`SELECT product_id, price FROM product_prices`).all();
+    for (const row of results || []) {
+      if (products[row.product_id] && Number.isFinite(row.price) && row.price > 0) {
+        products[row.product_id].price = row.price;
+      }
+    }
+  } catch (e) {
+    console.error('getProducts: product_prices lookup failed, using static defaults:', e);
+  }
+  return products;
+}
+
+// ============================================================================
+// وضع الصيانة — منطق مشترك بين functions/_middleware.js (يقرر فعليًا هل يُغلق
+// الموقع العام) وfunctions/api/admin/settings.js (يعرضه بلوحة الإدارة)، حتى
+// يحسب الطرفان دائمًا نفس النتيجة بالضبط لنفس البيانات، بلا تكرار للمنطق.
+// ============================================================================
+export const MAINTENANCE_KEYS = [
+  'maintenance_mode', 'maintenance_message', 'maintenance_eta',
+  'maintenance_schedule_start', 'maintenance_schedule_end',
+];
+
+// يقرأ كل مفاتيح الصيانة من site_settings دفعة واحدة. يرجّع {} إن تعذّر الوصول
+// لـD1 (fail-open: القراءة الفارغة تعني "لا صيانة" في computeMaintenanceState).
+export async function readMaintenanceSettings(env) {
+  if (!env.ORDERS_DB) return {};
+  const { results } = await env.ORDERS_DB.prepare(
+    `SELECT key, value FROM site_settings WHERE key IN (${MAINTENANCE_KEYS.map(() => '?').join(',')})`
+  ).bind(...MAINTENANCE_KEYS).all();
+  const map = {};
+  for (const row of results || []) map[row.key] = row.value;
+  return map;
+}
+
+// يحسب: هل الموقع مغلق الآن فعليًا؟ (تفعيل يدوي مباشر، أو داخل نافذة زمنية محجوزة
+// مسبقًا من تبويب "予約設定"). scheduleStatus مفيد فقط لعرض النص المناسب بلوحة
+// الإدارة (none = لا حجز، upcoming = لم يبدأ بعد، active = جارٍ الآن، past = انتهى).
+export function computeMaintenanceState(map, now = Date.now()) {
+  const manual = map.maintenance_mode === '1';
+  const scheduleStart = map.maintenance_schedule_start || '';
+  const scheduleEnd = map.maintenance_schedule_end || '';
+  const start = scheduleStart ? Date.parse(scheduleStart) : NaN;
+  const end = scheduleEnd ? Date.parse(scheduleEnd) : NaN;
+  const hasSchedule = Number.isFinite(start) && Number.isFinite(end);
+
+  let scheduleStatus = 'none';
+  if (hasSchedule) {
+    if (now < start) scheduleStatus = 'upcoming';
+    else if (now < end) scheduleStatus = 'active';
+    else scheduleStatus = 'past';
+  }
+
+  return {
+    manual,
+    effective: manual || scheduleStatus === 'active',
+    scheduleStatus,
+    scheduleStart,
+    scheduleEnd,
+    message: map.maintenance_message || '',
+    eta: map.maintenance_eta || '',
+  };
+}
+
+// ============================================================================
+// 営業時間（週間） — /api/business-hours（公開・認証不要、index.htmlのウィジェットが
+// fetchする）と functions/api/admin/business-hours.js（管理画面「営業時間」タブ）の
+// 両方から共有。月曜始まり・日曜終わり固定（BUSINESS_DAYSの順）。
+// ============================================================================
+export const BUSINESS_HOURS_KEYS = ['business_hours_enabled', 'business_hours', 'business_hours_note'];
+export const BUSINESS_DAYS = ['mon', 'tue', 'wed', 'thu', 'fri', 'sat', 'sun'];
+const DEFAULT_BUSINESS_HOURS = BUSINESS_DAYS.map((day) => ({
+  day, closed: day === 'sun', open: '10:00', close: '18:00', note: '',
+}));
+const TIME_RE = /^([01]\d|2[0-3]):[0-5]\d$/;
+const DAY_NOTE_MAX = 40; // 曜日ごとの備考は表内に収まる短文のみ（長文はbusiness_hours_note側の全体特記事項へ）
+
+// يطبّع بيانات ساعات العمل (من site_settings أو من body إداري) لهيكل ثابت من 7 أيام
+// بالضبط بترتيب BUSINESS_DAYS، مع رجوع آمن للقيم الافتراضية عند أي تلف أو نقص بالبيانات
+// (fail-open: نفس فلسفة getProducts — ميزة إضافية، لا تكسر الصفحة العامة أبدًا).
+// note: ملاحظة قصيرة اختيارية خاصة بيوم واحد فقط (مثل "予約制"، "隔週営業") تظهر داخل
+// صف ذلك اليوم بالضبط بجدول ساعات العمل — منفصلة عن business_hours_note العام للموقع كله.
+export function normalizeBusinessHours(raw) {
+  let parsed;
+  try { parsed = typeof raw === 'string' ? JSON.parse(raw) : raw; } catch { parsed = null; }
+  if (!Array.isArray(parsed)) return DEFAULT_BUSINESS_HOURS.map((d) => ({ ...d }));
+
+  const byDay = {};
+  for (const row of parsed) { if (row && BUSINESS_DAYS.includes(row.day)) byDay[row.day] = row; }
+
+  return BUSINESS_DAYS.map((day) => {
+    const row = byDay[day];
+    const closed = !!(row && row.closed);
+    const open = row && TIME_RE.test(row.open) ? row.open : '10:00';
+    const close = row && TIME_RE.test(row.close) ? row.close : '18:00';
+    const note = row && typeof row.note === 'string' ? row.note.slice(0, DAY_NOTE_MAX) : '';
+    return { day, closed, open: closed ? '' : open, close: closed ? '' : close, note };
+  });
+}
+
+export async function readBusinessHoursSettings(env) {
+  if (!env.ORDERS_DB) return {};
+  const { results } = await env.ORDERS_DB.prepare(
+    `SELECT key, value FROM site_settings WHERE key IN (${BUSINESS_HOURS_KEYS.map(() => '?').join(',')})`
+  ).bind(...BUSINESS_HOURS_KEYS).all();
+  const map = {};
+  for (const row of results || []) map[row.key] = row.value;
+  return map;
+}
+
+export function computeBusinessHoursState(map) {
+  return {
+    enabled: map.business_hours_enabled === '1',
+    hours: normalizeBusinessHours(map.business_hours),
+    note: map.business_hours_note || '',
+  };
+}
+
+// ===== 送料計算 =====
+// ⚠️ عند تغيير هذا الجدول، حدّث نفس الجدول في index.html أيضًا (نفس المنطق تمامًا)
+// مصدر البيانات: 峯商店送料表.xlsx（出典: 佐川急便(株)川内営業所 田中健太郎様ご提示の運賃表、基点:鹿児島県。クール便込みの金額）
+// ⚠️ 鹿児島県は元データで「南九州」区分（熊本・宮崎と同枠）に含まれるが、九州区分と金額が全帯で同額のため
+// kyushu 1キーに統合済み（元データの D列=南九州 と E列=九州 は全行で同一金額）。
+// ⚠️ 沖縄県: 本体運賃とクール付加料金が他地域と異なる専用の金額体系（元データ Q〜S列）のため、
+// okinawaFee に「本体運賃＋沖縄専用クール付加料金」の合計（S列）をそのまま格納し、calcShipping 側で
+// 通常の rates[region] + coolOption とは別ルートで計算する。
+export const FREE_SHIPPING_THRESHOLD = 11000; // 商品小計がこの金額以上で送料（地域送料＋クール便手数料）が完全無料
+export const SHIPPING_SIZES = [
+  // 元データに存在する重量帯は20kg（140サイズ）まで。それを超える重量は下のループの末尾フォールバックで tooHeavy 扱いになる。
+  { size: 60,  maxWeight: 1000,  coolOption: 250, okinawaFee: 1914, rates: { kyushu: 450,  shikoku: 530,  chugoku: 530,  kinki: 530,  hokuriku: 560,  tokai: 560,  niigata_nagano: 610,  kanto: 610,  tohoku_s: 710,  tohoku_n: 710,  hokkaido: 800  } },
+  { size: 60,  maxWeight: 2000,  coolOption: 250, okinawaFee: 1914, rates: { kyushu: 620,  shikoku: 700,  chugoku: 700,  kinki: 700,  hokuriku: 730,  tokai: 730,  niigata_nagano: 750,  kanto: 780,  tohoku_s: 880,  tohoku_n: 880,  hokkaido: 970  } },
+  { size: 80,  maxWeight: 5000,  coolOption: 300, okinawaFee: 2233, rates: { kyushu: 760,  shikoku: 890,  chugoku: 890,  kinki: 890,  hokuriku: 960,  tokai: 960,  niigata_nagano: 1000, kanto: 1080, tohoku_s: 1320, tohoku_n: 1320, hokkaido: 1560 } },
+  { size: 100, maxWeight: 10000, coolOption: 400, okinawaFee: 3201, rates: { kyushu: 1000, shikoku: 1170, chugoku: 1170, kinki: 1170, hokuriku: 1310, tokai: 1310, niigata_nagano: 1400, kanto: 1550, tohoku_s: 2000, tohoku_n: 2050, hokkaido: 2480 } },
+  { size: 140, maxWeight: 20000, coolOption: 800, okinawaFee: 4587, rates: { kyushu: 1550, shikoku: 1880, chugoku: 1880, kinki: 1880, hokuriku: 2080, tokai: 2120, niigata_nagano: 2300, kanto: 2600, tohoku_s: 2890, tohoku_n: 2890, hokkaido: 3370 } },
+];
+// 都道府県 → 地域キー（有効な値の一覧としても使用）
+export const VALID_REGIONS = ['hokkaido','tohoku_n','tohoku_s','kanto','niigata_nagano','hokuriku','tokai','kinki','chugoku','shikoku','kyushu','okinawa'];
+
+// --- 電話番号を数字だけに正規化（KVのキーとして使用。表記ゆれ「090-1234-5678」「09012345678」を統一） ---
+export function normalizePhone(phone) {
+  return String(phone || '').replace(/[^\d]/g, '');
+}
+
+export const CUSTOMER_KV_PREFIX = 'customer:';
+const ATTEMPT_KV_PREFIX  = 'lookup_fail:';
+const MAX_ATTEMPTS = 5;             // 30分あたりの最大失敗回数
+const ATTEMPT_WINDOW_SEC = 30 * 60; // 30分
+const CUSTOMER_TTL_SEC = 60 * 60 * 24 * 365; // 1年間保持（それ以降は自動削除）
+
+// --- 決済完了時に呼び出し先情報をKVへ保存（次回注文時の呼び出し用） ---
+export async function saveCustomerRecord(env, customer) {
+  if (!env.CUSTOMERS_KV) return; // KVが未設定の環境では何もしない（機能を無効化するだけで落とさない）
+  const phone = normalizePhone(customer.phone);
+  if (!phone) return;
+  const record = {
+    name: customer.name || '',
+    email: customer.email || '',
+    pref: customer.pref || '',
+    postal: customer.postal || '',
+    address: customer.address || '',
+    updatedAt: new Date().toISOString(),
+  };
+  await env.CUSTOMERS_KV.put(CUSTOMER_KV_PREFIX + phone, JSON.stringify(record), { expirationTtl: CUSTOMER_TTL_SEC });
+}
+
+// --- 確定した注文を D1（ORDERS_DB）へ保存（/api/webhook から payment.captured/authorized 時に呼び出す） ---
+// ⚠️ D1バインディングが未設定の環境（例: ローカル開発）では何もせず正常終了する（機能を無効化するだけで落とさない）
+// ⚠️ payment.id を主キーにした INSERT ... ON CONFLICT なので、KOMOJUが同じイベントを再送しても重複行にならない
+export async function saveOrderToD1(env, payment) {
+  if (!env.ORDERS_DB) return;
+  const md = payment.metadata || {};
+  const shippingFee = Number(md.shipping_fee || 0);
+  const subtotal = Number(md.subtotal ?? (payment.amount - shippingFee));
+  let items = [];
+  try { items = md.items_json ? JSON.parse(md.items_json) : []; } catch { items = []; }
+
+  await env.ORDERS_DB.prepare(
+    `INSERT INTO orders (id, status, customer_name, customer_phone, customer_email, customer_pref, customer_postal, customer_address, subtotal, shipping_fee, amount, order_summary)
+     VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
+     ON CONFLICT(id) DO UPDATE SET status = excluded.status`
+  ).bind(
+    payment.id,
+    payment.status || 'captured',
+    md.customer_name || '',
+    md.customer_phone || '',
+    md.customer_email || payment.payment_details?.email || '',
+    md.customer_pref || '',
+    md.customer_postal || '',
+    md.customer_address || '',
+    subtotal,
+    shippingFee,
+    payment.amount,
+    md.order_summary || ''
+  ).run();
+
+  if (items.length) {
+    const stmt = env.ORDERS_DB.prepare(
+      `INSERT OR IGNORE INTO order_items (order_id, product_id, product_name, quantity, unit_price) VALUES (?, ?, ?, ?, ?)`
+    );
+    await env.ORDERS_DB.batch(items.map((it) => stmt.bind(payment.id, it.id, it.name, it.qty, it.price)));
+  }
+}
+
+// --- 電話番号＋郵便番号下4桁で呼び出し先情報を照会（総当たり対策のレート制限つき） ---
+export async function lookupCustomerRecord(env, phoneRaw, postal4) {
+  if (!env.CUSTOMERS_KV) return { ok: false, reason: 'unavailable' };
+  const phone = normalizePhone(phoneRaw);
+  if (!phone || !/^\d{4}$/.test(String(postal4 || ''))) return { ok: false, reason: 'invalid' };
+
+  const attemptKey = ATTEMPT_KV_PREFIX + phone;
+  const attemptsRaw = await env.CUSTOMERS_KV.get(attemptKey);
+  const attempts = attemptsRaw ? parseInt(attemptsRaw, 10) : 0;
+  if (attempts >= MAX_ATTEMPTS) return { ok: false, reason: 'locked' };
+
+  const dataRaw = await env.CUSTOMERS_KV.get(CUSTOMER_KV_PREFIX + phone);
+  const record = dataRaw ? JSON.parse(dataRaw) : null;
+  const last4 = record ? String(record.postal || '').replace(/[^\d]/g, '').slice(-4) : null;
+
+  if (!record || last4 !== String(postal4)) {
+    // فشل: نزيد عداد المحاولات (مو ندلّ الزبون هل الرقم غير موجود أصلاً أو الرمز غلط، عشان ما نسرّب معلومة)
+    await env.CUSTOMERS_KV.put(attemptKey, String(attempts + 1), { expirationTtl: ATTEMPT_WINDOW_SEC });
+    return { ok: false, reason: 'not_found' };
+  }
+
+  // نجاح: نصفّر عداد المحاولات
+  if (attempts > 0) await env.CUSTOMERS_KV.delete(attemptKey);
+  return { ok: true, record };
+}
+
+export function calcShipping(totalWeight, subtotal, regionKey) {
+  for (const s of SHIPPING_SIZES) {
+    if (totalWeight <= s.maxWeight) {
+      if (s.coolOption == null) return { fee: null, free: false, regionFee: null, coolFee: null, tooHeavy: true };
+      if (subtotal >= FREE_SHIPPING_THRESHOLD) return { fee: 0, free: true, regionFee: 0, coolFee: 0, tooHeavy: false };
+      if (regionKey === 'okinawa') return { fee: s.okinawaFee, free: false, regionFee: s.okinawaFee, coolFee: null, tooHeavy: false };
+      const regionFee = s.rates[regionKey];
+      if (typeof regionFee !== 'number') return { fee: null, free: false, regionFee: null, coolFee: null, tooHeavy: true };
+      return { fee: regionFee + s.coolOption, free: false, regionFee, coolFee: s.coolOption, tooHeavy: false };
+    }
+  }
+  return { fee: null, free: false, regionFee: null, coolFee: null, tooHeavy: true }; // 30kg超：要問い合わせ
+}
+
+// --- أدوات HMAC مشتركة (تستخدمها verifyKomojuSignature وجلسات لوحة الإدارة) ---
+async function hmacHex(secret, message) {
+  const key = await crypto.subtle.importKey(
+    'raw', new TextEncoder().encode(secret),
+    { name: 'HMAC', hash: 'SHA-256' }, false, ['sign']
+  );
+  const sigBuffer = await crypto.subtle.sign('HMAC', key, new TextEncoder().encode(message));
+  return [...new Uint8Array(sigBuffer)].map((b) => b.toString(16).padStart(2, '0')).join('');
+}
+
+// ============================================================================
+// TOTP (RFC 6238) — رمز التحقق بخطوتين (2FA) لتسجيل دخول لوحة الإدارة، عبر
+// تطبيق مصادقة عادي (Google Authenticator / Authy ...)، بدون أي خدمة خارجية.
+// ============================================================================
+
+// --- فك ترميز Base32 (معيار مفاتيح TOTP) إلى Uint8Array من البايتات الخام ---
+function base32Decode(base32) {
+  const alphabet = 'ABCDEFGHIJKLMNOPQRSTUVWXYZ234567';
+  const clean = String(base32 || '').toUpperCase().replace(/[^A-Z2-7]/g, '');
+  let bits = '';
+  for (const ch of clean) {
+    const idx = alphabet.indexOf(ch);
+    if (idx === -1) continue;
+    bits += idx.toString(2).padStart(5, '0');
+  }
+  const bytes = [];
+  for (let i = 0; i + 8 <= bits.length; i += 8) bytes.push(parseInt(bits.slice(i, i + 8), 2));
+  return new Uint8Array(bytes);
+}
+
+
+// --- HOTP (RFC 4226): توقيع HMAC-SHA1 لعدّاد الوقت، ثم استخراج 6 أرقام منه ---
+async function hotp(secretBytes, counter) {
+  const counterBuf = new ArrayBuffer(8);
+  const view = new DataView(counterBuf);
+  // JS لا يدعم أرقام 64-بت كاملة بأمان، لكن عدّاد الوقت (خطوات 30 ثانية) لن يبلغ حدود Number.MAX_SAFE_INTEGER فعليًا
+  view.setUint32(4, counter >>> 0);
+  view.setUint32(0, Math.floor(counter / 2 ** 32));
+
+  const key = await crypto.subtle.importKey('raw', secretBytes, { name: 'HMAC', hash: 'SHA-1' }, false, ['sign']);
+  const sig = new Uint8Array(await crypto.subtle.sign('HMAC', key, counterBuf));
+
+  const offset = sig[sig.length - 1] & 0x0f;
+  const binCode = ((sig[offset] & 0x7f) << 24) | ((sig[offset + 1] & 0xff) << 16) | ((sig[offset + 2] & 0xff) << 8) | (sig[offset + 3] & 0xff);
+  return String(binCode % 1_000_000).padStart(6, '0');
+}
+
+// --- يتحقق من رمز TOTP مكوّن من 6 أرقام، بهامش ±1 خطوة (30 ثانية) لفروقات الساعة ---
+export async function verifyTOTP(secretBase32, code, driftSteps = 1) {
+  const cleanCode = String(code || '').trim();
+  if (!/^\d{6}$/.test(cleanCode) || !secretBase32) return false;
+  const secretBytes = base32Decode(secretBase32);
+  if (!secretBytes.length) return false;
+
+  const step = Math.floor(Date.now() / 1000 / 30);
+  for (let drift = -driftSteps; drift <= driftSteps; drift++) {
+    const expected = await hotp(secretBytes, step + drift);
+    if (timingSafeEqual(expected, cleanCode)) return true;
+  }
+  return false;
+}
+
+// مقارنة ثابتة الزمن (constant-time) لمنع هجمات قياس التوقيت (timing attacks)
+export function timingSafeEqual(a, b) {
+  if (a.length !== b.length) return false;
+  let diff = 0;
+  for (let i = 0; i < a.length; i++) diff |= a.charCodeAt(i) ^ b.charCodeAt(i);
+  return diff === 0;
+}
+
+// --- التحقق من توقيع KOMOJU (HMAC-SHA256) للتأكد أن التنبيه فعلًا من KOMOJU ---
+export async function verifyKomojuSignature(rawBody, signatureHeader, secret) {
+  if (!signatureHeader || !secret) return false;
+  const computed = await hmacHex(secret, rawBody);
+  return timingSafeEqual(computed, signatureHeader);
+}
+
+// ============================================================================
+// パスワード / TOTP のD1保存 —「セキュリティ」タブから変更したパスワードと有効化した
+// 2FAシークレットを site_settings に保存する（デフォルトの env.ADMIN_PASSWORD /
+// env.ADMIN_TOTP_SECRET を上書きする形。空欄なら従来どおり env 側が使われる—後方互換）。
+// ============================================================================
+function bytesToHex(bytes) {
+  return [...bytes].map((b) => b.toString(16).padStart(2, '0')).join('');
+}
+function hexToBytes(hex) {
+  const clean = String(hex || '');
+  const out = new Uint8Array(Math.floor(clean.length / 2));
+  for (let i = 0; i < out.length; i++) out[i] = parseInt(clean.substr(i * 2, 2), 16);
+  return out;
+}
+const PBKDF2_ITERATIONS = 100000;
+
+// --- يُنشئ salt عشوائي (لو لم يُمرَّر) ويشتق hash عبر PBKDF2-SHA256. القيمة المُخزَّنة: "saltHex:hashHex" ---
+async function derivePasswordHash(password, saltBytes) {
+  const salt = saltBytes || crypto.getRandomValues(new Uint8Array(16));
+  const keyMaterial = await crypto.subtle.importKey('raw', new TextEncoder().encode(password), 'PBKDF2', false, ['deriveBits']);
+  const bits = await crypto.subtle.deriveBits({ name: 'PBKDF2', salt, iterations: PBKDF2_ITERATIONS, hash: 'SHA-256' }, keyMaterial, 256);
+  return `${bytesToHex(salt)}:${bytesToHex(new Uint8Array(bits))}`;
+}
+export async function hashPassword(password) {
+  return derivePasswordHash(password);
+}
+export async function verifyPasswordHash(password, stored) {
+  const [saltHex, hashHex] = String(stored || '').split(':');
+  if (!saltHex || !hashHex) return false;
+  const recomputed = await derivePasswordHash(password, hexToBytes(saltHex));
+  const [, recomputedHash] = recomputed.split(':');
+  return recomputedHash.length === hashHex.length && timingSafeEqual(recomputedHash, hashHex);
+}
+
+// --- القيمة الفعلية المعتمدة اليوم لكلمة المرور/TOTP: D1 (لو مُعدّة من「セキュリティ」) وإلا env ---
+export async function getAdminPasswordHash(env) {
+  if (!env.ORDERS_DB) return '';
+  try {
+    const row = await env.ORDERS_DB.prepare(`SELECT value FROM site_settings WHERE key = 'admin_password_hash'`).first();
+    return (row && row.value) || '';
+  } catch (e) {
+    console.error('getAdminPasswordHash failed, falling back to env.ADMIN_PASSWORD:', e);
+    return '';
+  }
+}
+export async function getAdminTotpSecret(env) {
+  if (!env.ORDERS_DB) return '';
+  try {
+    const row = await env.ORDERS_DB.prepare(`SELECT value FROM site_settings WHERE key = 'admin_totp_secret'`).first();
+    return (row && row.value) || '';
+  } catch (e) {
+    console.error('getAdminTotpSecret failed, falling back to env.ADMIN_TOTP_SECRET:', e);
+    return '';
+  }
+}
+
+// --- يتحقق من كلمة مرور الأدمن الحالية أيًا كان مصدرها (D1 المُعدَّة حديثًا أو env القديم) ---
+export async function verifyCurrentAdminPassword(env, password) {
+  const storedHash = await getAdminPasswordHash(env);
+  if (storedHash) return verifyPasswordHash(password, storedHash);
+  const correctPassword = env.ADMIN_PASSWORD || '';
+  return !!correctPassword && password.length === correctPassword.length && timingSafeEqual(password, correctPassword);
+}
+
+// ============================================================================
+// لوحة الإدارة (/admin) — جلسة موقّعة بدون تخزين على الخادم (stateless signed cookie)
+// ============================================================================
+const ADMIN_SESSION_COOKIE = 'admin_session';
+const ADMIN_SESSION_DURATION_MS = 12 * 60 * 60 * 1000; // 12 ساعة
+const ADMIN_ATTEMPT_KV_PREFIX = 'admin_fail:';
+const ADMIN_MAX_ATTEMPTS = 5;              // 15 دقيقة لكل عنوان IP
+const ADMIN_ATTEMPT_WINDOW_SEC = 15 * 60;
+// حدّ منفصل لمحاولات رمز TOTP (خطوة ثانية) عن حدّ محاولات كلمة المرور
+export const ADMIN_TOTP_ATTEMPT_KV_PREFIX = 'admin_totp_fail:';
+// حدّ منفصل لمحاولات كلمة المرور عند تأكيد حذف كل بيانات الطلبات (/api/admin/reset-data)
+export const ADMIN_RESET_ATTEMPT_KV_PREFIX = 'admin_reset_fail:';
+// حدّ منفصل لعمليات تبويب「セキュリティ」(تغيير كلمة المرور، إعداد/تعطيل TOTP)
+export const ADMIN_SECURITY_ATTEMPT_KV_PREFIX = 'admin_security_fail:';
+
+function getCookie(request, name) {
+  const header = request.headers.get('Cookie') || '';
+  const match = header.match(new RegExp('(?:^|; )' + name + '=([^;]*)'));
+  return match ? decodeURIComponent(match[1]) : null;
+}
+
+// --- ينشئ توكن جلسة موقَّع (expiry.signature) — لا حاجة لتخزينه بقاعدة بيانات ---
+export async function createAdminSession(secret) {
+  const expiry = Date.now() + ADMIN_SESSION_DURATION_MS;
+  const sig = await hmacHex(secret, String(expiry));
+  return `${expiry}.${sig}`;
+}
+
+// --- رأس Set-Cookie الكامل لتوكن الجلسة (HttpOnly+Secure+SameSite=Strict يمنعان القراءة من JS أو مواقع أخرى) ---
+export function adminSessionCookieHeader(token) {
+  const maxAge = Math.floor(ADMIN_SESSION_DURATION_MS / 1000);
+  return `${ADMIN_SESSION_COOKIE}=${token}; HttpOnly; Secure; SameSite=Strict; Path=/; Max-Age=${maxAge}`;
+}
+
+// --- رأس Set-Cookie لإلغاء الجلسة (تسجيل الخروج) ---
+export function adminLogoutCookieHeader() {
+  return `${ADMIN_SESSION_COOKIE}=; HttpOnly; Secure; SameSite=Strict; Path=/; Max-Age=0`;
+}
+
+// --- يتحقق من صلاحية جلسة الإدارة الحالية من الكوكيز المرفقة بالطلب ---
+export async function verifyAdminSession(request, secret) {
+  if (!secret) return false;
+  const token = getCookie(request, ADMIN_SESSION_COOKIE);
+  if (!token) return false;
+  const [expiryStr, sig] = token.split('.');
+  const expiry = Number(expiryStr);
+  if (!expiry || !sig || Date.now() > expiry) return false;
+  const expected = await hmacHex(secret, expiryStr);
+  return timingSafeEqual(sig, expected);
+}
+
+// ============================================================================
+// خطوة التحقق بخطوتين (2FA) — توكن مؤقّت "تم التحقق من كلمة المرور، بانتظار
+// رمز TOTP" بدون أي تخزين على الخادم (نفس أسلوب createAdminSession تمامًا)،
+// لكن بتوقيع رسالة مختلفة تمامًا (بادئة PENDING2FA:) حتى يستحيل استخدام هذا
+// التوكن المؤقّت كجلسة إدارة حقيقية حتى لو تسرّب.
+// ============================================================================
+const PENDING_2FA_DURATION_MS = 5 * 60 * 1000; // 5 دقائق فقط
+
+export async function createPendingTwoFactorToken(secret) {
+  const expiry = Date.now() + PENDING_2FA_DURATION_MS;
+  const sig = await hmacHex(secret, 'PENDING2FA:' + expiry);
+  return `${expiry}.${sig}`;
+}
+
+export async function verifyPendingTwoFactorToken(token, secret) {
+  if (!secret || !token) return false;
+  const [expiryStr, sig] = String(token).split('.');
+  const expiry = Number(expiryStr);
+  if (!expiry || !sig || Date.now() > expiry) return false;
+  const expected = await hmacHex(secret, 'PENDING2FA:' + expiryStr);
+  return timingSafeEqual(sig, expected);
+}
+
+// --- الحد من محاولات تسجيل الدخول الفاشلة (نعيد استخدام CUSTOMERS_KV، نفس أسلوب lookupCustomerRecord) ---
+// prefix اختياري: يسمح بحدّ منفصل لكل خطوة (كلمة المرور مقابل رمز TOTP) بنفس المنطق تمامًا
+export async function checkAdminRateLimit(env, ip, prefix) {
+  if (!env.CUSTOMERS_KV) return { blocked: false, attempts: 0, key: null };
+  const key = (prefix || ADMIN_ATTEMPT_KV_PREFIX) + (ip || 'unknown');
+  const raw = await env.CUSTOMERS_KV.get(key);
+  const attempts = raw ? parseInt(raw, 10) : 0;
+  return { blocked: attempts >= ADMIN_MAX_ATTEMPTS, attempts, key };
+}
+export async function recordAdminFailure(env, key, attempts) {
+  if (!env.CUSTOMERS_KV || !key) return;
+  await env.CUSTOMERS_KV.put(key, String(attempts + 1), { expirationTtl: ADMIN_ATTEMPT_WINDOW_SEC });
+}
+export async function clearAdminFailures(env, key) {
+  if (!env.CUSTOMERS_KV || !key) return;
+  await env.CUSTOMERS_KV.delete(key);
+}
+
+// --- تنقية النصوص قبل إدراجها في HTML (منع حقن HTML/سكربت من بيانات الزبون) ---
+export function escapeHtml(str) {
+  return String(str ?? '-').replace(/[&<>"']/g, (c) => ({
+    '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;', "'": '&#39;',
+  }[c]));
+}
+
+// --- التحقق من رمز Cloudflare Turnstile مع خوادم Cloudflare ---
+export async function verifyTurnstile(token, secret, remoteIp) {
+  if (!token || !secret) return false;
+  try {
+    const body = new URLSearchParams();
+    body.append('secret', secret);
+    body.append('response', token);
+    if (remoteIp) body.append('remoteip', remoteIp);
+    const res = await fetch('https://challenges.cloudflare.com/turnstile/v0/siteverify', {
+      method: 'POST',
+      body,
+    });
+    const data = await res.json();
+    return !!data.success;
+  } catch {
+    return false;
+  }
+}
+
+// ============================================================================
+// قالب البريد الإلكتروني — بنفس هوية الموقع (الألوان + الخطوط + الأسلوب)
+// مبني بجداول HTML (table-based) للتوافق مع Gmail وأغلب برامج البريد،
+// وكل الأنماط inline لأن أغلب برامج البريد تتجاهل وسم <style> بالكامل.
+// ============================================================================
+const EMAIL_COLORS = {
+  tealDeep:  '#1f4e5a',
+  teal:      '#6fbac8',
+  terra:     '#c2703d',
+  ink:       '#2b2723',
+  muted:     '#6b655c',
+  paper:     '#faf6ee',
+  paperDeep: '#f1eadd',
+  paper2:    '#fffdf8',
+  line:      '#e5ded0',
+};
+
+// يبني إطار البريد الكامل (رأس بعلامة "峯商店" + بطاقة المحتوى + تذييل)
+function emailShell({ eyebrow, title, bodyHtml, footerNote }) {
+  const c = EMAIL_COLORS;
+  return `<!DOCTYPE html>
+<html lang="ja">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>${eyebrow}</title>
+</head>
+<body style="margin:0;padding:0;background-color:${c.paperDeep};font-family:'Hiragino Sans','Noto Sans JP','Yu Gothic',sans-serif;">
+<table role="presentation" width="100%" cellpadding="0" cellspacing="0" style="background-color:${c.paperDeep};padding:32px 16px;">
+  <tr>
+    <td align="center">
+      <table role="presentation" width="100%" cellpadding="0" cellspacing="0" style="max-width:560px;background-color:${c.paper2};border-radius:14px;overflow:hidden;box-shadow:0 2px 10px rgba(43,39,35,.08);">
+
+        <!-- Header -->
+        <tr>
+          <td style="background-color:${c.tealDeep};padding:30px 32px;text-align:center;">
+            <div style="font-family:'Hiragino Mincho ProN','Yu Mincho','Shippori Mincho',serif;font-size:22px;font-weight:700;color:#ffffff;letter-spacing:.04em;">
+              峯商店
+            </div>
+            <div style="font-size:10px;letter-spacing:.24em;color:${c.teal};margin-top:4px;text-transform:uppercase;">
+              CURRY &amp; CAF&Eacute;
+            </div>
+          </td>
+        </tr>
+
+        <!-- Eyebrow / kj label -->
+        <tr>
+          <td style="padding:32px 32px 0 32px;">
+            <div style="font-family:'Hiragino Mincho ProN','Yu Mincho','Shippori Mincho',serif;font-size:12px;font-weight:700;letter-spacing:.18em;color:${c.terra};margin-bottom:8px;">
+              ${eyebrow}
+            </div>
+            <h1 style="font-family:'Hiragino Mincho ProN','Yu Mincho','Shippori Mincho',serif;font-size:21px;font-weight:700;color:${c.ink};margin:0 0 24px 0;line-height:1.5;">
+              ${title}
+            </h1>
+          </td>
+        </tr>
+
+        <!-- Body -->
+        <tr>
+          <td style="padding:0 32px 8px 32px;">
+            ${bodyHtml}
+          </td>
+        </tr>
+
+        <!-- Divider -->
+        <tr>
+          <td style="padding:28px 32px 0 32px;">
+            <div style="border-top:1px solid ${c.line};"></div>
+          </td>
+        </tr>
+
+        <!-- Footer -->
+        <tr>
+          <td style="padding:20px 32px 30px 32px;">
+            <p style="margin:0 0 6px 0;font-size:12px;color:${c.muted};line-height:1.7;">
+              ${footerNote || ''}
+            </p>
+            <p style="margin:0;font-size:11px;color:${c.muted};">
+              峯商店 CURRY &amp; CAF&Eacute; ｜ 鹿児島県薩摩川内市
+            </p>
+          </td>
+        </tr>
+
+      </table>
+    </td>
+  </tr>
+</table>
+</body>
+</html>`;
+}
+
+// صف بيانات واحد (تسمية + قيمة) بشكل جدول متسق
+function fieldRow(label, value) {
+  const c = EMAIL_COLORS;
+  return `
+    <tr>
+      <td style="padding:10px 0;border-bottom:1px solid ${c.line};width:110px;font-size:13px;color:${c.muted};vertical-align:top;white-space:nowrap;">
+        ${escapeHtml(label)}
+      </td>
+      <td style="padding:10px 0 10px 16px;border-bottom:1px solid ${c.line};font-size:14px;color:${c.ink};font-weight:500;vertical-align:top;">
+        ${value}
+      </td>
+    </tr>`;
+}
+
+// صندوق نص بارز (لعرض محتوى الرسالة أو تفاصيل الطلب)
+function highlightBox(innerHtml) {
+  const c = EMAIL_COLORS;
+  return `
+    <div style="margin-top:20px;background-color:${c.paper};border:1px solid ${c.line};border-radius:10px;padding:18px 20px;font-size:14px;color:${c.ink};line-height:1.9;">
+      ${innerHtml}
+    </div>`;
+}
+// ============================================================================
+
+// --- تحديث حالة الطلب فقط (بدون لمس order_items) — يُستخدم لتحديثات authorized→captured اللاحقة ---
+export async function updateOrderStatus(env, paymentId, status) {
+  if (!env.ORDERS_DB) return;
+  await env.ORDERS_DB.prepare(`UPDATE orders SET status = ? WHERE id = ?`).bind(status, paymentId).run();
+}
+
+// --- إرسال بريد رسالة "お問い合わせ" عبر Resend ---
+export async function sendContactEmail(env, c) {
+  const rows = [
+    fieldRow('お名前', escapeHtml(c.name)),
+    fieldRow('メール', `<a href="mailto:${escapeHtml(c.email)}" style="color:${EMAIL_COLORS.tealDeep};text-decoration:none;">${escapeHtml(c.email)}</a>`),
+    fieldRow('件名', escapeHtml(c.subject || '(未入力)')),
+  ].join('');
+
+  const bodyHtml = `
+    <table role="presentation" width="100%" cellpadding="0" cellspacing="0">${rows}</table>
+    ${highlightBox(escapeHtml(c.message).replace(/\n/g, '<br>'))}
+  `;
+
+  const html = emailShell({
+    eyebrow: 'CONTACT',
+    title: '新しいお問い合わせが届きました',
+    bodyHtml,
+    footerNote: 'このメールは峯商店サイトの「お問い合わせ」フォームから自動送信されています。',
+  });
+
+  const res = await fetch('https://api.resend.com/emails', {
+    method: 'POST',
+    headers: {
+      'Content-Type': 'application/json',
+      Authorization: 'Bearer ' + (env.RESEND_API_KEY || FALLBACK_RESEND_API_KEY),
+    },
+    body: JSON.stringify({
+      from: 'onboarding@resend.dev', // بريد الاختبار الجاهز من Resend — لا يحتاج تحقق نطاق
+      to: OWNER_EMAIL,
+      reply_to: c.email,
+      subject: `【峯商店】お問い合わせ${c.subject ? '（' + c.subject + '）' : ''}`,
+      html,
+    }),
+  });
+  // ⚠️ إن لم نتحقق من رد Resend هنا، أي فشل بالإرسال (مفتاح خاطئ، بريد مرفوض...)
+  // يمر بصمت والموقع يعرض للزبون "تم الإرسال" رغم عدم وصول أي بريد فعليًا.
+  if (!res.ok) {
+    const detail = await res.text().catch(() => '');
+    throw new Error(`Resend API error (${res.status}): ${detail}`);
+  }
+}
+
+// --- إرسال بريد إشعار عبر Resend ---
+export async function sendOrderEmail(env, payment) {
+  const md = payment.metadata || {};
+  const yen = n => '¥' + Number(n || 0).toLocaleString('ja-JP');
+
+  const rows = [
+    fieldRow('金額', `<span style="color:${EMAIL_COLORS.terra};font-weight:700;font-size:16px;">${yen(payment.amount)}</span>`),
+    fieldRow('お名前', escapeHtml(md.customer_name)),
+    fieldRow('電話番号', escapeHtml(md.customer_phone)),
+    fieldRow('メール', escapeHtml(payment.payment_details?.email || md.customer_email)),
+    fieldRow('都道府県', escapeHtml(md.customer_pref)),
+    fieldRow('郵便番号', escapeHtml(md.customer_postal)),
+    fieldRow('ご住所', escapeHtml(md.customer_address)),
+    fieldRow('送料', md.shipping_fee != null ? yen(md.shipping_fee) : '-'),
+  ].join('');
+
+  const bodyHtml = `
+    <table role="presentation" width="100%" cellpadding="0" cellspacing="0">${rows}</table>
+    ${highlightBox(escapeHtml(md.order_summary || '(内訳なし)').replace(/\n/g, '<br>'))}
+    <p style="margin:16px 0 0 0;font-size:11px;color:${EMAIL_COLORS.muted};">Payment ID: ${escapeHtml(payment.id)}</p>
+  `;
+
+  const html = emailShell({
+    eyebrow: 'NEW ORDER',
+    title: '新しいご注文が入りました',
+    bodyHtml,
+    footerNote: 'このメールはKOMOJUでの決済完了時に自動送信されています。',
+  });
+
+  const res = await fetch('https://api.resend.com/emails', {
+    method: 'POST',
+    headers: {
+      'Content-Type': 'application/json',
+      Authorization: 'Bearer ' + (env.RESEND_API_KEY || FALLBACK_RESEND_API_KEY),
+    },
+    body: JSON.stringify({
+      from: 'onboarding@resend.dev', // بريد الاختبار الجاهز من Resend — لا يحتاج تحقق نطاق
+      to: OWNER_EMAIL,
+      subject: `【峯商店】新しいご注文（${yen(payment.amount)}）`,
+      html,
+    }),
+  });
+  if (!res.ok) {
+    const detail = await res.text().catch(() => '');
+    throw new Error(`Resend API error (${res.status}): ${detail}`);
+  }
+}
