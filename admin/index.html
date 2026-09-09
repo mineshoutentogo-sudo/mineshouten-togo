@@ -2499,8 +2499,7 @@ table.items-table{width:100%;border-collapse:collapse;font-size:13px}
     if(!taxSettings.tax_enabled && !taxSettings.komoju_fee_enabled) return '';
     var rows = '';
     if(taxSettings.tax_enabled){
-      var exTax = subtotal / (1 + taxSettings.tax_rate / 100);
-      var taxAmount = Math.round(subtotal - exTax);
+      var taxAmount = Math.round(subtotal * (taxSettings.tax_rate / 100));
       rows += '<div class="row" style="color:var(--muted);font-size:12.5px"><span>内消費税（' + taxSettings.tax_rate + '%・商品小計より・目安）</span><span>' + yen(taxAmount) + '</span></div>';
     }
     var feeAmount = 0;
