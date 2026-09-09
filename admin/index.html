@@ -697,6 +697,39 @@ table.items-table{width:100%;border-collapse:collapse;font-size:13px}
         <div class="table-loading">読み込み中…</div>
       </div>
 
+      <div class="maint-card" style="margin-top:18px">
+        <h3>
+          <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"><line x1="12" y1="1" x2="12" y2="23"/><path d="M17 5H9.5a3.5 3.5 0 0 0 0 7h5a3.5 3.5 0 0 1 0 7H6"/></svg>
+          消費税・KOMOJU手数料の表示
+        </h3>
+        <p class="maint-toggle-desc">ONにすると、「注文詳細」の金額内訳に内消費税・KOMOJU手数料・手取り額（いずれも目安）が表示されます。お客様への請求額（合計）自体は変更されません。</p>
+
+        <div class="maint-toggle-row" style="margin-top:16px">
+          <div style="font-size:13.5px;font-weight:700">消費税の内訳を表示する</div>
+          <label class="switch">
+            <input type="checkbox" id="taxEnabledToggle">
+            <span class="switch-track"><span class="switch-thumb"></span></span>
+          </label>
+        </div>
+        <label class="maint-field-label" for="taxRateInput">消費税率（%）</label>
+        <input type="number" id="taxRateInput" class="maint-input" min="0" max="100" step="0.1" style="max-width:140px">
+
+        <div class="maint-toggle-row" style="margin-top:22px">
+          <div style="font-size:13.5px;font-weight:700">KOMOJU手数料を表示する</div>
+          <label class="switch">
+            <input type="checkbox" id="komojuFeeEnabledToggle">
+            <span class="switch-track"><span class="switch-thumb"></span></span>
+          </label>
+        </div>
+        <label class="maint-field-label" for="komojuFeeRateInput">KOMOJU手数料率（%）</label>
+        <input type="number" id="komojuFeeRateInput" class="maint-input" min="0" max="100" step="0.01" style="max-width:140px">
+
+        <div style="margin-top:16px">
+          <button class="maint-save-btn" id="taxSettingsSaveBtn" type="button">保存</button>
+          <span class="maint-msg" id="taxSettingsMsg"></span>
+        </div>
+      </div>
+
       <div class="danger-zone">
         <h3>
           <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"><path d="M10.29 3.86 1.82 18a2 2 0 0 0 1.71 3h16.94a2 2 0 0 0 1.71-3L13.71 3.86a2 2 0 0 0-3.42 0z"/><line x1="12" y1="9" x2="12" y2="13"/><line x1="12" y1="17" x2="12.01" y2="17"/></svg>
@@ -1100,6 +1133,7 @@ table.items-table{width:100%;border-collapse:collapse;font-size:13px}
     dashboardView.style.display = 'block';
     loadStats();
     loadOrders();
+    loadTaxSettings();
     refreshSiteStatusBadge();
     startDashboardPolling();
   }
@@ -1534,6 +1568,7 @@ table.items-table{width:100%;border-collapse:collapse;font-size:13px}
       +     '<div class="row"><span>商品小計</span><span>' + yen(o.subtotal) + '</span></div>'
       +     '<div class="row"><span>送料</span><span>' + yen(o.shipping_fee) + '</span></div>'
       +     '<div class="row grand"><span>合計</span><span>' + yen(o.amount) + '</span></div>'
+      +     taxBreakdownRowsHtml(o.amount)
       +   '</div>'
       + '</div>'
 
@@ -2393,6 +2428,87 @@ table.items-table{width:100%;border-collapse:collapse;font-size:13px}
           });
       });
     });
+  }
+
+  // ===== 設定タブ：消費税・KOMOJU手数料の表示設定 =====
+  // taxSettings は「注文詳細」モーダルの金額内訳表示にも使うため、ログイン直後に
+  // 一度だけ取得してこのオブジェクトを更新する（設定タブを開いていなくても内訳が出せるように）。
+  var taxSettings = { tax_enabled: false, tax_rate: 10, komoju_fee_enabled: false, komoju_fee_rate: 3.6 };
+  var taxEnabledToggle = document.getElementById('taxEnabledToggle');
+  var taxRateInput = document.getElementById('taxRateInput');
+  var komojuFeeEnabledToggle = document.getElementById('komojuFeeEnabledToggle');
+  var komojuFeeRateInput = document.getElementById('komojuFeeRateInput');
+  var taxSettingsSaveBtn = document.getElementById('taxSettingsSaveBtn');
+  var taxSettingsMsg = document.getElementById('taxSettingsMsg');
+
+  function applyTaxSettingsToForm(){
+    taxEnabledToggle.checked = taxSettings.tax_enabled;
+    taxRateInput.value = taxSettings.tax_rate;
+    komojuFeeEnabledToggle.checked = taxSettings.komoju_fee_enabled;
+    komojuFeeRateInput.value = taxSettings.komoju_fee_rate;
+  }
+
+  function loadTaxSettings(){
+    fetch('/api/admin/tax-settings').then(function(res){
+      if(res.status === 401){ showLogin(); return null; }
+      return res.json();
+    }).then(function(d){
+      if(!d || d.error) return;
+      taxSettings = d;
+      applyTaxSettingsToForm();
+    }).catch(function(){});
+  }
+
+  taxSettingsSaveBtn.addEventListener('click', function(){
+    var taxRate = parseFloat(taxRateInput.value);
+    var feeRate = parseFloat(komojuFeeRateInput.value);
+    if(!Number.isFinite(taxRate) || taxRate < 0 || taxRate > 100){
+      taxSettingsMsg.style.color = 'var(--warn)'; taxSettingsMsg.textContent = '消費税率は0〜100で入力してください。'; return;
+    }
+    if(!Number.isFinite(feeRate) || feeRate < 0 || feeRate > 100){
+      taxSettingsMsg.style.color = 'var(--warn)'; taxSettingsMsg.textContent = 'KOMOJU手数料率は0〜100で入力してください。'; return;
+    }
+    taxSettingsSaveBtn.disabled = true;
+    taxSettingsMsg.style.color = 'var(--ok)';
+    taxSettingsMsg.textContent = '保存中…';
+    fetch('/api/admin/tax-settings', {
+      method: 'PATCH', headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({
+        tax_enabled: taxEnabledToggle.checked, tax_rate: taxRate,
+        komoju_fee_enabled: komojuFeeEnabledToggle.checked, komoju_fee_rate: feeRate
+      })
+    }).then(function(res){ return res.json().then(function(data){ return { ok: res.ok, data: data }; }); })
+      .then(function(r){
+        taxSettingsSaveBtn.disabled = false;
+        if(!r.ok){ taxSettingsMsg.style.color = 'var(--warn)'; taxSettingsMsg.textContent = r.data.error || '保存に失敗しました。'; return; }
+        taxSettings = r.data;
+        applyTaxSettingsToForm();
+        taxSettingsMsg.style.color = 'var(--ok)';
+        taxSettingsMsg.textContent = '保存しました ✓';
+      }).catch(function(){
+        taxSettingsSaveBtn.disabled = false;
+        taxSettingsMsg.style.color = 'var(--warn)';
+        taxSettingsMsg.textContent = '通信エラーが発生しました。';
+      });
+  });
+
+  // 注文詳細モーダルの金額内訳に追加する行（内消費税／KOMOJU手数料／手取り額）。
+  // どちらもOFFなら何も返さない。amount は既存の「合計」（お客様への請求額、税込）。
+  function taxBreakdownRowsHtml(amount){
+    if(!taxSettings.tax_enabled && !taxSettings.komoju_fee_enabled) return '';
+    var rows = '';
+    if(taxSettings.tax_enabled){
+      var exTax = amount / (1 + taxSettings.tax_rate / 100);
+      var taxAmount = Math.round(amount - exTax);
+      rows += '<div class="row" style="color:var(--muted);font-size:12.5px"><span>内消費税（' + taxSettings.tax_rate + '%・目安）</span><span>' + yen(taxAmount) + '</span></div>';
+    }
+    var feeAmount = 0;
+    if(taxSettings.komoju_fee_enabled){
+      feeAmount = Math.round(amount * (taxSettings.komoju_fee_rate / 100));
+      rows += '<div class="row" style="color:var(--warn);font-size:12.5px"><span>KOMOJU手数料（' + taxSettings.komoju_fee_rate + '%・目安）</span><span>−' + yen(feeAmount) + '</span></div>';
+      rows += '<div class="row grand" style="margin-top:8px"><span>手取り額（目安）</span><span>' + yen(amount - feeAmount) + '</span></div>';
+    }
+    return rows;
   }
 
   // ===== 危険な操作：全注文データ削除（設定タブ） =====
