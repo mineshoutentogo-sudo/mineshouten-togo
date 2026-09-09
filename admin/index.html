@@ -1568,7 +1568,7 @@ table.items-table{width:100%;border-collapse:collapse;font-size:13px}
       +     '<div class="row"><span>商品小計</span><span>' + yen(o.subtotal) + '</span></div>'
       +     '<div class="row"><span>送料</span><span>' + yen(o.shipping_fee) + '</span></div>'
       +     '<div class="row grand"><span>合計</span><span>' + yen(o.amount) + '</span></div>'
-      +     taxBreakdownRowsHtml(o.amount)
+      +     taxBreakdownRowsHtml(o.subtotal, o.amount)
       +   '</div>'
       + '</div>'
 
@@ -2493,14 +2493,15 @@ table.items-table{width:100%;border-collapse:collapse;font-size:13px}
   });
 
   // 注文詳細モーダルの金額内訳に追加する行（内消費税／KOMOJU手数料／手取り額）。
-  // どちらもOFFなら何も返さない。amount は既存の「合計」（お客様への請求額、税込）。
-  function taxBreakdownRowsHtml(amount){
+  // どちらもOFFなら何も返さない。消費税は商品小計（送料を含まない）から算出し、
+  // KOMOJU手数料・手取り額は amount（既存の「合計」＝お客様への請求額、税込・送料込み）から算出する。
+  function taxBreakdownRowsHtml(subtotal, amount){
     if(!taxSettings.tax_enabled && !taxSettings.komoju_fee_enabled) return '';
     var rows = '';
     if(taxSettings.tax_enabled){
-      var exTax = amount / (1 + taxSettings.tax_rate / 100);
-      var taxAmount = Math.round(amount - exTax);
-      rows += '<div class="row" style="color:var(--muted);font-size:12.5px"><span>内消費税（' + taxSettings.tax_rate + '%・目安）</span><span>' + yen(taxAmount) + '</span></div>';
+      var exTax = subtotal / (1 + taxSettings.tax_rate / 100);
+      var taxAmount = Math.round(subtotal - exTax);
+      rows += '<div class="row" style="color:var(--muted);font-size:12.5px"><span>内消費税（' + taxSettings.tax_rate + '%・商品小計より・目安）</span><span>' + yen(taxAmount) + '</span></div>';
     }
     var feeAmount = 0;
     if(taxSettings.komoju_fee_enabled){
