@@ -4,7 +4,7 @@
  * ⚠️ إن كنت فعّلت Webhook سابقًا من لوحة KOMOJU على الرابط القديم، لازم تحدّثه
  * ليصير: https://mineshouten-togo.pages.dev/api/webhook
  */
-import { verifyKomojuSignature, sendOrderEmail, saveCustomerRecord, saveOrderToD1, updateOrderStatus } from '../_lib/helpers.js';
+import { verifyKomojuSignature, sendOrderEmail, sendCustomerInvoiceEmail, saveCustomerRecord, saveOrderToD1, updateOrderStatus } from '../_lib/helpers.js';
 
 export async function onRequestPost(context) {
   const { request, env } = context;
@@ -38,6 +38,11 @@ export async function onRequestPost(context) {
     if (!alreadyProcessed) {
       try { await sendOrderEmail(env, payment); }
       catch (e) { console.error('sendOrderEmail failed:', e); } // لا نفشل الاستجابة لـ KOMOJU حتى لو فشل إرسال البريد
+
+      // بريد تأكيد الطلب/الفاتورة للعميل نفسه — منفصل تمامًا عن بريد المالك أعلاه،
+      // فشل أحدهما لا يمنع وصول الآخر ولا يُفشل الاستجابة لـ KOMOJU
+      try { await sendCustomerInvoiceEmail(env, payment); }
+      catch (e) { console.error('sendCustomerInvoiceEmail failed:', e); }
 
       // نحفظ بيانات التوصيل بـ KV عشان تُستحضَر تلقائيًا بالطلب القادم (رقم الهاتف + آخر 4 أرقام بريدي)
       try {

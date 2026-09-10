@@ -674,6 +674,39 @@ function highlightBox(innerHtml) {
       ${innerHtml}
     </div>`;
 }
+
+// جدول تفصيل الفاتورة (بريد العميل فقط): سطر لكل منتج + صفوف مجموع (小計/送料/合計)
+// items: [{ name, price (سعر الوحدة), qty }] — نفس الشكل المُخزَّن بـ metadata.items_json عند /api/checkout
+function invoiceItemsTable(items, subtotal, shippingFee, total) {
+  const c = EMAIL_COLORS;
+  const yen = (n) => '¥' + Number(n || 0).toLocaleString('ja-JP');
+
+  const itemRows = (items || []).map((it) => `
+    <tr>
+      <td style="padding:9px 0;border-bottom:1px solid ${c.line};font-size:13px;color:${c.ink};">${escapeHtml(it.name)}</td>
+      <td style="padding:9px 0;border-bottom:1px solid ${c.line};font-size:13px;color:${c.muted};text-align:center;white-space:nowrap;">× ${Number(it.qty || 0)}</td>
+      <td style="padding:9px 0;border-bottom:1px solid ${c.line};font-size:13px;color:${c.ink};text-align:right;white-space:nowrap;">${yen(Number(it.price || 0) * Number(it.qty || 0))}</td>
+    </tr>`).join('');
+
+  const sumRow = (label, value, emphasize) => `
+    <tr>
+      <td colspan="2" style="padding:${emphasize ? '14px' : '7px'} 0 ${emphasize ? '0' : '7px'} 0;font-size:${emphasize ? '15px' : '13px'};color:${emphasize ? c.ink : c.muted};font-weight:${emphasize ? '700' : '400'};text-align:right;${emphasize ? `border-top:1px solid ${c.line};` : ''}">${label}</td>
+      <td style="padding:${emphasize ? '14px' : '7px'} 0 ${emphasize ? '0' : '7px'} 0;font-size:${emphasize ? '17px' : '13px'};color:${emphasize ? c.terra : c.ink};font-weight:${emphasize ? '700' : '500'};text-align:right;white-space:nowrap;${emphasize ? `border-top:1px solid ${c.line};` : ''}">${value}</td>
+    </tr>`;
+
+  return `
+    <table role="presentation" width="100%" cellpadding="0" cellspacing="0">
+      <tr>
+        <td style="padding:0 0 8px 0;font-size:11px;color:${c.muted};border-bottom:2px solid ${c.tealDeep};letter-spacing:.05em;">品名</td>
+        <td style="padding:0 0 8px 0;font-size:11px;color:${c.muted};border-bottom:2px solid ${c.tealDeep};text-align:center;letter-spacing:.05em;">数量</td>
+        <td style="padding:0 0 8px 0;font-size:11px;color:${c.muted};border-bottom:2px solid ${c.tealDeep};text-align:right;letter-spacing:.05em;">金額</td>
+      </tr>
+      ${itemRows}
+      ${sumRow('小計', yen(subtotal))}
+      ${sumRow(shippingFee > 0 ? '送料（クール便込み）' : '送料', shippingFee > 0 ? yen(shippingFee) : '無料')}
+      ${sumRow('ご請求金額', yen(total), true)}
+    </table>`;
+}
 // ============================================================================
 
 // --- تحديث حالة الطلب فقط (بدون لمس order_items) — يُستخدم لتحديثات authorized→captured اللاحقة ---
@@ -763,6 +796,94 @@ export async function sendOrderEmail(env, payment) {
       from: 'onboarding@resend.dev', // بريد الاختبار الجاهز من Resend — لا يحتاج تحقق نطاق
       to: OWNER_EMAIL,
       subject: `【峯商店】新しいご注文（${yen(payment.amount)}）`,
+      html,
+    }),
+  });
+  if (!res.ok) {
+    const detail = await res.text().catch(() => '');
+    throw new Error(`Resend API error (${res.status}): ${detail}`);
+  }
+}
+
+// --- إرسال بريد "تأكيد الطلب/الفاتورة" للعميل نفسه عبر Resend (عند اكتمال الدفع) ---
+// ⚠️ يُستدعى من /api/webhook بجانب sendOrderEmail (بريد المالك) — بريد منفصل تمامًا،
+// بنفس هوية الموقع (emailShell) مع تفصيل فاتورة كامل (سطور المنتجات + المجموع) بدل
+// ملخص نصي فقط، لأن هذا البريد يصل للعميل ويُستخدم كإثبات/مرجع للطلب.
+export async function sendCustomerInvoiceEmail(env, payment) {
+  const md = payment.metadata || {};
+  const yen = n => '¥' + Number(n || 0).toLocaleString('ja-JP');
+
+  const toEmail = String(payment.payment_details?.email || md.customer_email || '').trim();
+  if (!toEmail) return; // لا عنوان بريد صالح — لا شيء لإرساله (بريد المالك لا يزال يصل بشكل مستقل)
+
+  let items = [];
+  try { items = md.items_json ? JSON.parse(md.items_json) : []; } catch { items = []; }
+
+  const shippingFee = Number(md.shipping_fee || 0);
+  const subtotal = Number(md.subtotal ?? (payment.amount - shippingFee));
+  const orderDate = new Date().toLocaleDateString('ja-JP', { year: 'numeric', month: 'long', day: 'numeric' });
+
+  const introHtml = `
+    <p style="margin:0 0 22px 0;font-size:14px;color:${EMAIL_COLORS.ink};line-height:1.9;">
+      ${escapeHtml(md.customer_name)} 様<br><br>
+      この度は峯商店をご利用いただき、誠にありがとうございます。<br>
+      以下の内容でご注文のお支払いが完了いたしましたので、ご確認くださいませ。
+    </p>`;
+
+  const orderMetaRows = [
+    fieldRow('注文番号', `<span style="font-family:'DM Mono',monospace;font-size:12px;letter-spacing:.02em;">${escapeHtml(payment.id)}</span>`),
+    fieldRow('お支払日', escapeHtml(orderDate)),
+    fieldRow('お支払方法', 'KOMOJU（オンライン決済）'),
+  ].join('');
+
+  const shippingRows = [
+    fieldRow('お届け先', escapeHtml(md.customer_name)),
+    fieldRow('ご住所', `〒${escapeHtml(md.customer_postal)}　${escapeHtml(md.customer_pref)}${escapeHtml(md.customer_address)}`),
+    fieldRow('電話番号', escapeHtml(md.customer_phone)),
+  ].join('');
+
+  const sectionLabel = (text) => `
+    <div style="font-family:'Hiragino Mincho ProN','Yu Mincho','Shippori Mincho',serif;font-size:13px;font-weight:700;color:${EMAIL_COLORS.tealDeep};letter-spacing:.08em;margin:0 0 10px 0;">
+      ${text}
+    </div>`;
+
+  const bodyHtml = `
+    ${introHtml}
+    <table role="presentation" width="100%" cellpadding="0" cellspacing="0">${orderMetaRows}</table>
+
+    <div style="margin-top:26px;">
+      ${sectionLabel('ご注文内容・お支払い明細')}
+      ${invoiceItemsTable(items, subtotal, shippingFee, payment.amount)}
+    </div>
+
+    <div style="margin-top:26px;">
+      ${sectionLabel('お届け先情報')}
+      <table role="presentation" width="100%" cellpadding="0" cellspacing="0">${shippingRows}</table>
+    </div>
+
+    <p style="margin:22px 0 0 0;font-size:12.5px;color:${EMAIL_COLORS.muted};line-height:1.9;">
+      冷凍にて厳重に梱包のうえ、発送の準備を進めてまいります。発送が完了しましたら、追跡番号等につきまして別途ご連絡させていただく場合がございます。今しばらくお待ちくださいませ。
+    </p>
+  `;
+
+  const html = emailShell({
+    eyebrow: 'ORDER CONFIRMED',
+    title: 'ご注文ありがとうございます',
+    bodyHtml,
+    footerNote: 'このメールはお支払い完了時に自動送信されています。ご注文内容についてご不明な点がございましたら、本メールにご返信いただくか、お電話（080-3957-5729）またはメール（mineshouten.togo@gmail.com）までお気軽にお問い合わせください。',
+  });
+
+  const res = await fetch('https://api.resend.com/emails', {
+    method: 'POST',
+    headers: {
+      'Content-Type': 'application/json',
+      Authorization: 'Bearer ' + (env.RESEND_API_KEY || FALLBACK_RESEND_API_KEY),
+    },
+    body: JSON.stringify({
+      from: '峯商店 <onboarding@resend.dev>', // بريد الاختبار الجاهز من Resend — يعمل بأي اسم عرض بدون تحقق نطاق
+      to: toEmail,
+      reply_to: OWNER_EMAIL, // ردود العميل على هذا البريد تصل لصاحب المتجر مباشرة (onboarding@resend.dev لا يُقرأ)
+      subject: `【峯商店】ご注文確認・お支払い明細（${yen(payment.amount)}）`,
       html,
     }),
   });
