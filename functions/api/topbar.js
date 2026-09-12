@@ -15,7 +15,9 @@ export async function onRequestGet(context) {
 
   try {
     const map = await readTopbarSettings(env);
-    return new Response(JSON.stringify(computeTopbarState(map)), { headers });
+    const state = computeTopbarState(map);
+    // العام لا يحتاج إلا القيمتين الفعليتين (لا داعي لكشف تاريخ الانتهاء الخام هنا)
+    return new Response(JSON.stringify({ construction: state.construction, trial: state.trial }), { headers });
   } catch (e) {
     console.error('topbar GET failed:', e);
     return new Response(JSON.stringify({ construction: false, trial: false }), { headers });

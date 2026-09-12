@@ -879,6 +879,12 @@ table.items-table{width:100%;border-collapse:collapse;font-size:13px}
         </div>
 
         <div>
+          <label class="maint-field-label" for="topbarTrialUntil">トライアルバーの自動終了日時（空欄なら自動終了なし・手動でOFFにするまで表示され続けます）</label>
+          <input type="datetime-local" id="topbarTrialUntil" class="maint-input">
+          <div class="maint-schedule-note" id="topbarTrialExpiredNote" style="display:none">この日時を過ぎているため、トライアルバーは現在表示されていません（ONのままですが自動的に非表示中）。</div>
+        </div>
+
+        <div>
           <button class="maint-save-btn" id="topbarSaveBtn" type="button">通知バーの設定を保存</button>
           <span class="maint-msg" id="topbarMsg"></span>
         </div>
@@ -2153,6 +2159,8 @@ table.items-table{width:100%;border-collapse:collapse;font-size:13px}
   // ===== トップページの通知バー（「サイト準備中」／「トライアル」） =====
   var topbarConstructionToggle = document.getElementById('topbarConstructionToggle');
   var topbarTrialToggle = document.getElementById('topbarTrialToggle');
+  var topbarTrialUntil = document.getElementById('topbarTrialUntil');
+  var topbarTrialExpiredNote = document.getElementById('topbarTrialExpiredNote');
   var topbarSaveBtn = document.getElementById('topbarSaveBtn');
   var topbarMsg = document.getElementById('topbarMsg');
 
@@ -2166,7 +2174,9 @@ table.items-table{width:100%;border-collapse:collapse;font-size:13px}
       if(!d) return;
       topbarMsg.textContent = '';
       topbarConstructionToggle.checked = !!d.construction;
-      topbarTrialToggle.checked = !!d.trial;
+      topbarTrialToggle.checked = !!d.trialEnabled;
+      topbarTrialUntil.value = isoToLocalInput(d.trialUntil || '');
+      topbarTrialExpiredNote.style.display = (d.trialEnabled && d.trialExpired) ? 'block' : 'none';
     }).catch(function(){
       topbarMsg.style.color = 'var(--warn)';
       topbarMsg.textContent = '読み込みに失敗しました。';
@@ -2179,11 +2189,16 @@ table.items-table{width:100%;border-collapse:collapse;font-size:13px}
     topbarMsg.textContent = '保存中…';
     fetch('/api/admin/topbar', {
       method: 'PATCH', headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify({ construction: topbarConstructionToggle.checked, trial: topbarTrialToggle.checked })
+      body: JSON.stringify({
+        construction: topbarConstructionToggle.checked,
+        trial: topbarTrialToggle.checked,
+        trialUntil: localInputToIso(topbarTrialUntil.value),
+      })
     }).then(function(res){ return res.json().then(function(data){ return { ok: res.ok, data: data }; }); })
       .then(function(r){
         topbarSaveBtn.disabled = false;
         if(!r.ok){ topbarMsg.style.color = 'var(--warn)'; topbarMsg.textContent = r.data.error || '保存に失敗しました。'; return; }
+        topbarTrialExpiredNote.style.display = (r.data.trialEnabled && r.data.trialExpired) ? 'block' : 'none';
         topbarMsg.style.color = 'var(--ok)';
         topbarMsg.textContent = '保存しました ✓';
       }).catch(function(){

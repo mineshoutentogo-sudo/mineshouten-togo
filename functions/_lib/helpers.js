@@ -183,7 +183,7 @@ export function computeBusinessHoursState(map) {
 // ويُعدَّل من تبويب "メンテナンス" بلوحة الإدارة (functions/api/admin/topbar.js).
 // fail-open: أي خلل بـD1 يخفي الشريط بدل كسر الصفحة العامة (نفس فلسفة ساعات العمل أعلاه).
 // ============================================================================
-export const TOPBAR_KEYS = ['topbar_construction_enabled', 'topbar_trial_enabled'];
+export const TOPBAR_KEYS = ['topbar_construction_enabled', 'topbar_trial_enabled', 'topbar_trial_until'];
 
 export async function readTopbarSettings(env) {
   if (!env.ORDERS_DB) return {};
@@ -195,10 +195,21 @@ export async function readTopbarSettings(env) {
   return map;
 }
 
-export function computeTopbarState(map) {
+// trialUntil: ISO 8601 اختياري لإطفاء شريط التجربة تلقائيًا عند وصول موعده، بدون أي
+// إجراء يدوي (نفس فكرة الحجز الزمني لوضع الصيانة، لكن اتجاه واحد فقط: إطفاء وليس تشغيل).
+// trialEnabled يبقى المفتاح اليدوي الخام كما هو (لعرضه بلوحة الإدارة)، بينما trial هو
+// الحالة الفعلية المعروضة للزوار (trialEnabled && لم ينتهِ الموعد بعد).
+export function computeTopbarState(map, now = Date.now()) {
+  const trialUntil = map.topbar_trial_until || '';
+  const trialUntilMs = trialUntil ? Date.parse(trialUntil) : NaN;
+  const trialExpired = Number.isFinite(trialUntilMs) && now >= trialUntilMs;
+  const trialEnabled = map.topbar_trial_enabled === '1';
   return {
     construction: map.topbar_construction_enabled === '1',
-    trial: map.topbar_trial_enabled === '1',
+    trialEnabled,
+    trialUntil,
+    trialExpired,
+    trial: trialEnabled && !trialExpired,
   };
 }
 

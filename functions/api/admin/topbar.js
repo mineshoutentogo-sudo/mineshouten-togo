@@ -1,8 +1,13 @@
 /**
  * GET   /api/admin/topbar — حالة شريط الإشعار العلوي الحالية (「サイト準備中」／「デモ版」)
- * PATCH /api/admin/topbar — تحديثهما. body: { construction, trial } (كلاهما boolean،
- *   مستقلان تمامًا عن بعض ويمكن تفعيلهما معًا). يتطلّب جلسة صالحة.
- *   القراءة الفعلية أثناء تصفّح الموقع العام تتم من functions/api/topbar.js مباشرة.
+ *   يرجّع: { construction, trialEnabled, trialUntil, trialExpired, trial }
+ *   trialEnabled = المفتاح اليدوي الخام، trial = الحالة الفعلية المعروضة للزوار الآن
+ *   (trialEnabled && لم ينتهِ trialUntil بعد)، trialExpired = انتهى الموعد لكن المفتاح
+ *   اليدوي لا يزال ON (يفيد لعرض تنبيه بلوحة الإدارة).
+ * PATCH /api/admin/topbar — تحديثها. body: { construction, trial, trialUntil }
+ *   construction/trial: boolean. trialUntil: نص فارغ (بدون انتهاء تلقائي) أو تاريخ/وقت
+ *   صالح (ISO). يتطلّب جلسة صالحة. القراءة الفعلية أثناء تصفّح الموقع العام تتم من
+ *   functions/api/topbar.js مباشرة.
  */
 import { verifyAdminSession, readTopbarSettings, computeTopbarState } from '../../_lib/helpers.js';
 
@@ -15,7 +20,14 @@ export async function onRequestGet(context) {
 
   try {
     const map = await readTopbarSettings(env);
-    return new Response(JSON.stringify(computeTopbarState(map)), { headers });
+    const state = computeTopbarState(map);
+    return new Response(JSON.stringify({
+      construction: state.construction,
+      trialEnabled: state.trialEnabled,
+      trialUntil: state.trialUntil,
+      trialExpired: state.trialExpired,
+      trial: state.trial,
+    }), { headers });
   } catch (e) {
     console.error('admin/topbar GET failed:', e);
     return new Response(JSON.stringify({ error: '設定の取得に失敗しました' }), { status: 500, headers });
@@ -39,6 +51,16 @@ export async function onRequestPatch(context) {
   const construction = body.construction ? '1' : '0';
   const trial = body.trial ? '1' : '0';
 
+  const trialUntilRaw = String(body.trialUntil || '').trim();
+  let trialUntil = '';
+  if (trialUntilRaw) {
+    const ms = Date.parse(trialUntilRaw);
+    if (!Number.isFinite(ms)) {
+      return new Response(JSON.stringify({ error: 'トライアルの終了日時が正しくありません。' }), { status: 400, headers });
+    }
+    trialUntil = new Date(ms).toISOString();
+  }
+
   try {
     const stmt = env.ORDERS_DB.prepare(
       `INSERT INTO site_settings (key, value, updated_at) VALUES (?, ?, datetime('now'))
@@ -47,12 +69,18 @@ export async function onRequestPatch(context) {
     await env.ORDERS_DB.batch([
       stmt.bind('topbar_construction_enabled', construction),
       stmt.bind('topbar_trial_enabled', trial),
+      stmt.bind('topbar_trial_until', trialUntil),
     ]);
 
+    const now = Date.now();
+    const trialExpired = !!trialUntil && now >= Date.parse(trialUntil);
     return new Response(JSON.stringify({
       ok: true,
       construction: construction === '1',
-      trial: trial === '1',
+      trialEnabled: trial === '1',
+      trialUntil,
+      trialExpired,
+      trial: trial === '1' && !trialExpired,
     }), { headers });
   } catch (e) {
     console.error('admin/topbar PATCH failed:', e);
