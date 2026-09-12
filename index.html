@@ -85,6 +85,8 @@ header{
   transform:translateX(-100%);animation:shimmer 3.6s ease-in-out infinite}
 .topbar .dot{width:8px;height:8px;border-radius:50%;background:#fff;flex-shrink:0;animation:pulse 1.6s ease-in-out infinite}
 .topbar .en{opacity:.78;font-size:12px;letter-spacing:.12em}
+.topbar[hidden]{display:none}
+.topbar-trial{background:var(--teal-deep)}
 @keyframes shimmer{0%{transform:translateX(-100%)}55%,100%{transform:translateX(100%)}}
 @keyframes pulse{0%,100%{opacity:1;transform:scale(1)}50%{opacity:.4;transform:scale(.7)}}
 
@@ -795,12 +797,28 @@ footer{background:var(--ink);color:#cfc8bd;padding:56px 0 28px}
 </head>
 <body>
 
-<!-- ===== UNDER CONSTRUCTION ===== -->
-<div class="topbar" role="status">
+<!-- ===== 通知バー（管理画面「メンテナンス」タブでON/OFF） ===== -->
+<div class="topbar" id="topbarConstruction" role="status" hidden>
   <span class="dot"></span>
   <span>ただいまサイト準備中です ｜ 順次公開してまいります</span>
   <span class="en">UNDER CONSTRUCTION</span>
 </div>
+<div class="topbar topbar-trial" id="topbarTrial" role="status" hidden>
+  <span class="dot"></span>
+  <span>こちらは公開前の確認用デモ版です</span>
+  <span class="en">TRIAL VERSION</span>
+</div>
+<script>
+(function(){
+  fetch('/api/topbar', { cache: 'no-store' })
+    .then(function(res){ return res.json(); })
+    .then(function(d){
+      document.getElementById('topbarConstruction').hidden = !d.construction;
+      document.getElementById('topbarTrial').hidden = !d.trial;
+    })
+    .catch(function(){ /* 取得失敗時は非表示のまま — 公開サイト本体は絶対に壊さない */ });
+})();
+</script>
 
 <!-- ===== HEADER ===== -->
 <header>

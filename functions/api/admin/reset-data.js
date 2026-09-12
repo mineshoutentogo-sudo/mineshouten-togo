@@ -11,7 +11,7 @@
  * body: { password }
  */
 import {
-  verifyAdminSession, timingSafeEqual,
+  verifyAdminSession, verifyCurrentAdminPassword,
   checkAdminRateLimit, recordAdminFailure, clearAdminFailures,
   ADMIN_RESET_ATTEMPT_KV_PREFIX, CUSTOMER_KV_PREFIX,
 } from '../../_lib/helpers.js';
@@ -32,9 +32,12 @@ export async function onRequestPost(context) {
   let body;
   try { body = await request.json(); } catch { return new Response(JSON.stringify({ error: '無効なリクエストです' }), { status: 400, headers }); }
 
+  // ⚠️ يجب مطابقة نفس منطق كل نقطة نهاية حساسة أخرى (login.js/security.js): كلمة المرور
+  // المعتمدة هي D1 (لو غُيّرت من تبويب「セキュリティ」) وإلا env.ADMIN_PASSWORD كاحتياط —
+  // وليس env.ADMIN_PASSWORD مباشرة، وإلا كلمة مرور قديمة تُرِكت تعمل لهذا الإجراء التدميري
+  // حتى بعد تغييرها من لوحة الإدارة.
   const password = String(body.password || '');
-  const correctPassword = env.ADMIN_PASSWORD || '';
-  const passwordOk = !!correctPassword && password.length === correctPassword.length && timingSafeEqual(password, correctPassword);
+  const passwordOk = await verifyCurrentAdminPassword(env, password);
 
   if (!passwordOk) {
     if (rl.key) await recordAdminFailure(env, rl.key, rl.attempts);

@@ -848,6 +848,41 @@ table.items-table{width:100%;border-collapse:collapse;font-size:13px}
           </div>
         </div>
       </div>
+
+      <div class="maint-card">
+        <h3>
+          <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"><path d="M3 11l18-5v12L3 14v-3z"/><path d="M11.6 16.8a3 3 0 1 1-5.8-1.6"/></svg>
+          トップページの通知バー
+        </h3>
+        <p class="maint-toggle-desc">メンテナンス画面（サイト全体を止める）とは別に、通常どおり閲覧・注文できる状態のまま、ページ最上部に小さな帯（バー）でお知らせを表示できます。両方同時にONにすることもできます。</p>
+
+        <div class="maint-toggle-row">
+          <div>
+            <h3>「サイト準備中」バーを表示する</h3>
+            <p class="maint-toggle-desc">ONにすると、トップページ最上部に「ただいまサイト準備中です｜UNDER CONSTRUCTION」の帯が表示されます。</p>
+          </div>
+          <label class="switch">
+            <input type="checkbox" id="topbarConstructionToggle">
+            <span class="switch-track"><span class="switch-thumb"></span></span>
+          </label>
+        </div>
+
+        <div class="maint-toggle-row">
+          <div>
+            <h3>「トライアル（デモ版）」バーを表示する</h3>
+            <p class="maint-toggle-desc">ONにすると、トップページ最上部に「こちらは公開前の確認用デモ版です｜TRIAL VERSION」の帯が表示されます。公開前にお客様へ確認いただく際にご利用ください。</p>
+          </div>
+          <label class="switch">
+            <input type="checkbox" id="topbarTrialToggle">
+            <span class="switch-track"><span class="switch-thumb"></span></span>
+          </label>
+        </div>
+
+        <div>
+          <button class="maint-save-btn" id="topbarSaveBtn" type="button">通知バーの設定を保存</button>
+          <span class="maint-msg" id="topbarMsg"></span>
+        </div>
+      </div>
     </div>
 
     <!-- ===== 営業時間タブ ===== -->
@@ -1254,7 +1289,7 @@ table.items-table{width:100%;border-collapse:collapse;font-size:13px}
     document.getElementById('paneSecurity').classList.toggle('active', tab === 'security');
     if(tab === 'analytics' && !analyticsLoaded){ analyticsLoaded = true; loadAnalytics(); }
     if(tab === 'settings' && !settingsLoaded){ settingsLoaded = true; loadSettings(); }
-    if(tab === 'maintenance' && !maintenanceLoaded){ maintenanceLoaded = true; loadMaintenance(); }
+    if(tab === 'maintenance' && !maintenanceLoaded){ maintenanceLoaded = true; loadMaintenance(); loadTopbar(); }
     if(tab === 'hours' && !hoursLoaded){ hoursLoaded = true; loadBusinessHours(); }
     if(tab === 'security' && !securityLoaded){ securityLoaded = true; loadSecurityStatus(); }
   }
@@ -2113,6 +2148,49 @@ table.items-table{width:100%;border-collapse:collapse;font-size:13px}
       if(!r.ok){ maintMsg.style.color = 'var(--warn)'; maintMsg.textContent = r.data.error || '保存に失敗しました。'; return; }
       maintMsg.textContent = '保存しました ✓';
     });
+  });
+
+  // ===== トップページの通知バー（「サイト準備中」／「トライアル」） =====
+  var topbarConstructionToggle = document.getElementById('topbarConstructionToggle');
+  var topbarTrialToggle = document.getElementById('topbarTrialToggle');
+  var topbarSaveBtn = document.getElementById('topbarSaveBtn');
+  var topbarMsg = document.getElementById('topbarMsg');
+
+  function loadTopbar(){
+    topbarMsg.style.color = 'var(--muted)';
+    topbarMsg.textContent = '読み込み中…';
+    fetch('/api/admin/topbar').then(function(res){
+      if(res.status === 401){ showLogin(); return null; }
+      return res.json();
+    }).then(function(d){
+      if(!d) return;
+      topbarMsg.textContent = '';
+      topbarConstructionToggle.checked = !!d.construction;
+      topbarTrialToggle.checked = !!d.trial;
+    }).catch(function(){
+      topbarMsg.style.color = 'var(--warn)';
+      topbarMsg.textContent = '読み込みに失敗しました。';
+    });
+  }
+
+  topbarSaveBtn.addEventListener('click', function(){
+    topbarSaveBtn.disabled = true;
+    topbarMsg.style.color = 'var(--ok)';
+    topbarMsg.textContent = '保存中…';
+    fetch('/api/admin/topbar', {
+      method: 'PATCH', headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ construction: topbarConstructionToggle.checked, trial: topbarTrialToggle.checked })
+    }).then(function(res){ return res.json().then(function(data){ return { ok: res.ok, data: data }; }); })
+      .then(function(r){
+        topbarSaveBtn.disabled = false;
+        if(!r.ok){ topbarMsg.style.color = 'var(--warn)'; topbarMsg.textContent = r.data.error || '保存に失敗しました。'; return; }
+        topbarMsg.style.color = 'var(--ok)';
+        topbarMsg.textContent = '保存しました ✓';
+      }).catch(function(){
+        topbarSaveBtn.disabled = false;
+        topbarMsg.style.color = 'var(--warn)';
+        topbarMsg.textContent = '通信エラーが発生しました。';
+      });
   });
 
   maintScheduleSaveBtn.addEventListener('click', function(){

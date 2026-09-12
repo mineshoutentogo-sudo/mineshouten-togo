@@ -18,11 +18,11 @@
  * تسجيل الدخول يعمل بكلمة المرور فقط كما هو الحال اليوم (لا يُقفَل الوصول تلقائيًا).
  */
 
-// ⚠️ مفتاح اختبار مؤقت (sk_test_...) — آمن نسبيًا لأنه للتجربة فقط وليس للمعاملات الحقيقية.
-// يُفضَّل دائمًا وضع المفتاح كمتغيّر بيئة مشفّر من لوحة Pages
-// (Settings → Environment variables → Add secret → KOMOJU_SECRET_KEY)
-// بدل تركه هنا كنص ظاهر في الكود — خصوصًا عند الانتقال لاحقًا لمفتاح sk_live_ الحقيقي.
-export const FALLBACK_TEST_SECRET_KEY = 'sk_test_95o06oc1qlv1z5jel2zakxnt';
+// ⚠️ Secret Key الخاص بـ KOMOJU (الدفع). لا تضع أي مفتاح هنا أبدًا — لا حتى مفتاح
+// sk_test_ تجريبي — لنفس سبب Turnstile/Resend أدناه: أي كود يُرفع لأي مستودع يبقى
+// مرئيًا بتاريخ الـcommits للأبد حتى لو حُذف لاحقًا. أضفه حصريًا من لوحة Cloudflare
+// Pages: Settings → Environment variables → أضف KOMOJU_SECRET_KEY كـ Secret.
+export const FALLBACK_TEST_SECRET_KEY = '';
 
 // ⚠️ عدّل هذا لبريدك الإلكتروني الحقيقي — هنا ستصلك إشعارات كل طلب جديد
 export const OWNER_EMAIL = 'mineshouten.togo@gmail.com';
@@ -174,6 +174,31 @@ export function computeBusinessHoursState(map) {
     enabled: map.business_hours_enabled === '1',
     hours: normalizeBusinessHours(map.business_hours),
     note: map.business_hours_note || '',
+  };
+}
+
+// ============================================================================
+// شريط الإشعار العلوي (topbar) — "サイト準備中"（تحت الإنشاء）و"デモ版"（وضع تجريبي）،
+// يظهر أعلى الصفحة العامة index.html. يُقرأ من /api/topbar (عام، بدون تسجيل دخول)
+// ويُعدَّل من تبويب "メンテナンス" بلوحة الإدارة (functions/api/admin/topbar.js).
+// fail-open: أي خلل بـD1 يخفي الشريط بدل كسر الصفحة العامة (نفس فلسفة ساعات العمل أعلاه).
+// ============================================================================
+export const TOPBAR_KEYS = ['topbar_construction_enabled', 'topbar_trial_enabled'];
+
+export async function readTopbarSettings(env) {
+  if (!env.ORDERS_DB) return {};
+  const { results } = await env.ORDERS_DB.prepare(
+    `SELECT key, value FROM site_settings WHERE key IN (${TOPBAR_KEYS.map(() => '?').join(',')})`
+  ).bind(...TOPBAR_KEYS).all();
+  const map = {};
+  for (const row of results || []) map[row.key] = row.value;
+  return map;
+}
+
+export function computeTopbarState(map) {
+  return {
+    construction: map.topbar_construction_enabled === '1',
+    trial: map.topbar_trial_enabled === '1',
   };
 }
 
